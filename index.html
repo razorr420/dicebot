@@ -1,0 +1,707 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Telegram Dice Sender</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+
+        .container {
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+            width: 100%;
+            max-width: 450px;
+            overflow: hidden;
+            animation: slideUp 0.5s ease;
+        }
+
+        @keyframes slideUp {
+            from {
+                opacity: 0;
+                transform: translateY(30px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .header {
+            background: linear-gradient(135deg, #0088cc, #0088cc);
+            padding: 40px 30px;
+            text-align: center;
+            color: white;
+        }
+
+        .header h1 {
+            font-size: 28px;
+            margin-bottom: 10px;
+            font-weight: 600;
+        }
+
+        .header p {
+            opacity: 0.9;
+            font-size: 14px;
+        }
+
+        .content {
+            padding: 40px 30px;
+        }
+
+        .page {
+            display: none;
+        }
+
+        .page.active {
+            display: block;
+        }
+
+        .input-group {
+            margin-bottom: 25px;
+        }
+
+        .input-group label {
+            display: block;
+            margin-bottom: 8px;
+            color: #333;
+            font-weight: 500;
+            font-size: 14px;
+        }
+
+        .input-group input {
+            width: 100%;
+            padding: 14px 16px;
+            border: 2px solid #e1e8ed;
+            border-radius: 12px;
+            font-size: 16px;
+            transition: all 0.3s ease;
+            outline: none;
+        }
+
+        .input-group input:focus {
+            border-color: #0088cc;
+            box-shadow: 0 0 0 3px rgba(0, 136, 204, 0.1);
+        }
+
+        .input-group small {
+            display: block;
+            margin-top: 6px;
+            color: #666;
+            font-size: 12px;
+        }
+
+        .btn {
+            width: 100%;
+            padding: 16px;
+            background: linear-gradient(135deg, #0088cc, #006699);
+            color: white;
+            border: none;
+            border-radius: 12px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 15px rgba(0, 136, 204, 0.3);
+        }
+
+        .btn:hover:not(:disabled) {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(0, 136, 204, 0.4);
+        }
+
+        .btn:active {
+            transform: translateY(0);
+        }
+
+        .btn:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+            transform: none;
+            opacity: 0.6;
+        }
+
+        .dice-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 12px;
+            margin-bottom: 30px;
+        }
+
+        .dice-box {
+            aspect-ratio: 1;
+            border: 2px solid #e1e8ed;
+            border-radius: 16px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 32px;
+            font-weight: bold;
+            color: #999;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            background: #f8f9fa;
+        }
+
+        .dice-box:hover {
+            border-color: #0088cc;
+            transform: scale(1.05);
+        }
+
+        .dice-box.selected {
+            background: linear-gradient(135deg, #0088cc, #006699);
+            color: white;
+            border-color: #0088cc;
+            box-shadow: 0 4px 15px rgba(0, 136, 204, 0.3);
+        }
+
+        .logout-btn {
+            background: linear-gradient(135deg, #ff6b6b, #ee5a6f);
+            margin-top: 15px;
+            box-shadow: 0 4px 15px rgba(255, 107, 107, 0.3);
+        }
+
+        .logout-btn:hover:not(:disabled) {
+            box-shadow: 0 6px 20px rgba(255, 107, 107, 0.4);
+        }
+
+        .success-msg, .error-msg, .info-msg {
+            padding: 12px 16px;
+            border-radius: 10px;
+            margin-bottom: 20px;
+            font-size: 14px;
+            display: none;
+        }
+
+        .success-msg {
+            background: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+
+        .error-msg {
+            background: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+
+        .info-msg {
+            background: #d1ecf1;
+            color: #0c5460;
+            border: 1px solid #bee5eb;
+        }
+
+        .success-msg.show, .error-msg.show, .info-msg.show {
+            display: block;
+            animation: slideDown 0.3s ease;
+        }
+
+        @keyframes slideDown {
+            from {
+                opacity: 0;
+                transform: translateY(-10px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .info-text {
+            text-align: center;
+            color: #666;
+            font-size: 13px;
+            margin-top: 20px;
+        }
+
+        .dashboard-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 25px;
+            padding-bottom: 15px;
+            border-bottom: 2px solid #f0f0f0;
+        }
+
+        .dashboard-header h2 {
+            color: #333;
+            font-size: 22px;
+        }
+
+        .status-badge {
+            background: #d4edda;
+            color: #155724;
+            padding: 6px 14px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: 600;
+        }
+
+        .loading {
+            display: inline-block;
+            width: 16px;
+            height: 16px;
+            border: 2px solid #ffffff;
+            border-radius: 50%;
+            border-top-color: transparent;
+            animation: spin 0.8s linear infinite;
+            margin-right: 8px;
+            vertical-align: middle;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🎲 Telegram Dice</h1>
+            <p>Send dice to your chats</p>
+        </div>
+
+        <div class="content">
+            <!-- Login Page -->
+            <div id="loginPage" class="page active">
+                <div class="error-msg" id="loginError"></div>
+                <div class="input-group">
+                    <label for="phoneNumber">Phone Number</label>
+                    <input type="tel" id="phoneNumber" placeholder="+911234567890" />
+                    <small>Include country code (e.g., +911234567890 for India)</small>
+                </div>
+                <button class="btn" id="loginBtn" onclick="sendOTP()">
+                    <span id="loginBtnText">Login with Telegram</span>
+                </button>
+                <p class="info-text">Enter your phone number to receive OTP via Telegram</p>
+            </div>
+
+            <!-- OTP Page -->
+            <div id="otpPage" class="page">
+                <div class="success-msg show" id="otpSentMsg">OTP sent to your Telegram!</div>
+                <div class="error-msg" id="otpError"></div>
+                <div class="input-group">
+                    <label for="otpCode">Enter OTP Code</label>
+                    <input type="text" id="otpCode" placeholder="12345" maxlength="6" />
+                    <small>Check your Telegram messages</small>
+                </div>
+                <button class="btn" id="verifyBtn" onclick="verifyOTP()">
+                    <span id="verifyBtnText">Verify OTP</span>
+                </button>
+                <button class="btn logout-btn" onclick="backToLogin()">Back</button>
+            </div>
+
+            <!-- Password Page (for 2FA) -->
+            <div id="passwordPage" class="page">
+                <div class="info-msg show">Your account has 2FA enabled</div>
+                <div class="error-msg" id="passwordError"></div>
+                <div class="input-group">
+                    <label for="password2FA">Two-Factor Password</label>
+                    <input type="password" id="password2FA" placeholder="Enter your 2FA password" />
+                </div>
+                <button class="btn" id="passwordBtn" onclick="verify2FA()">
+                    <span id="passwordBtnText">Verify Password</span>
+                </button>
+                <button class="btn logout-btn" onclick="backToLogin()">Back</button>
+            </div>
+
+            <!-- Dashboard Page -->
+            <div id="dashboardPage" class="page">
+                <div class="dashboard-header">
+                    <h2>Dashboard</h2>
+                    <span class="status-badge">● Active</span>
+                </div>
+                
+                <div class="success-msg" id="successMsg"></div>
+                <div class="error-msg" id="errorMsg"></div>
+                
+                <div class="input-group">
+                    <label for="chatId">Chat ID</label>
+                    <input type="text" id="chatId" placeholder="Enter chat ID or username" />
+                    <small>Can be username (@username) or numeric ID</small>
+                </div>
+
+                <div class="input-group">
+                    <label>Select Dice Numbers (1-6)</label>
+                    <div class="dice-grid">
+                        <div class="dice-box" data-value="1" onclick="toggleDice(1)">1</div>
+                        <div class="dice-box" data-value="2" onclick="toggleDice(2)">2</div>
+                        <div class="dice-box" data-value="3" onclick="toggleDice(3)">3</div>
+                        <div class="dice-box" data-value="4" onclick="toggleDice(4)">4</div>
+                        <div class="dice-box" data-value="5" onclick="toggleDice(5)">5</div>
+                        <div class="dice-box" data-value="6" onclick="toggleDice(6)">6</div>
+                    </div>
+                </div>
+
+                <button class="btn" id="sendDiceBtn" onclick="sendDice()">
+                    <span id="sendDiceBtnText">🎲 Send Dice</span>
+                </button>
+                <button class="btn logout-btn" onclick="logout()">Logout</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // API Configuration - Update if your backend runs on different port
+        const API_URL = 'https://alyvia-beneficial-chelsey.ngrok-free.dev/api';
+
+        // State management
+        let selectedDice = [];
+        let sessionString = '';
+        let sessionId = '';
+
+        // Initialize app
+        function init() {
+            sessionString = localStorage.getItem('telegram_session') || '';
+            const savedChatId = localStorage.getItem('chat_id') || '';
+            const savedDice = localStorage.getItem('selected_dice') || '';
+
+            if (sessionString) {
+                showPage('dashboardPage');
+                
+                if (savedChatId) {
+                    document.getElementById('chatId').value = savedChatId;
+                }
+                
+                if (savedDice) {
+                    try {
+                        selectedDice = JSON.parse(savedDice);
+                        selectedDice.forEach(num => {
+                            const box = document.querySelector(`[data-value="${num}"]`);
+                            if (box) box.classList.add('selected');
+                        });
+                    } catch (e) {
+                        console.error('Error loading saved dice:', e);
+                        selectedDice = [];
+                    }
+                }
+            } else {
+                showPage('loginPage');
+            }
+        }
+
+        // Page navigation
+        function showPage(pageId) {
+            document.querySelectorAll('.page').forEach(page => {
+                page.classList.remove('active');
+            });
+            document.getElementById(pageId).classList.add('active');
+            
+            // Clear all error/success messages when changing pages
+            hideAllMessages();
+        }
+
+        function hideAllMessages() {
+            document.querySelectorAll('.error-msg, .success-msg').forEach(msg => {
+                msg.classList.remove('show');
+            });
+        }
+
+        // Login flow
+        async function sendOTP() {
+            let phone = document.getElementById('phoneNumber').value.trim();
+            
+            if (!phone) {
+                showError('loginError', 'Please enter a valid phone number');
+                return;
+            }
+
+            // Ensure phone has + prefix
+            if (!phone.startsWith('+')) {
+                phone = '+' + phone;
+            }
+
+            setButtonLoading('loginBtn', true);
+
+            try {
+                console.log('Sending OTP request to:', `${API_URL}/send-otp`);
+                
+                const response = await fetch(`${API_URL}/send-otp`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ phone }),
+                });
+
+                console.log('Response status:', response.status);
+                const data = await response.json();
+                console.log('Response data:', data);
+
+                if (data.success) {
+                    sessionId = data.session_id;
+                    console.log('Session ID:', sessionId);
+                    showPage('otpPage');
+                } else {
+                    showError('loginError', data.error || 'Failed to send OTP');
+                }
+            } catch (error) {
+                console.error('Error:', error);
+                showError('loginError', 'Failed to connect to server. Make sure the backend is running on port 5000.');
+            } finally {
+                setButtonLoading('loginBtn', false);
+            }
+        }
+
+        async function verifyOTP() {
+            const code = document.getElementById('otpCode').value.trim();
+            
+            if (!code || code.length < 5) {
+                showError('otpError', 'Please enter a valid OTP code');
+                return;
+            }
+
+            if (!sessionId) {
+                showError('otpError', 'Session expired. Please start over.');
+                setTimeout(() => backToLogin(), 2000);
+                return;
+            }
+
+            setButtonLoading('verifyBtn', true);
+
+            try {
+                const response = await fetch(`${API_URL}/verify-otp`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ 
+                        session_id: sessionId,
+                        code 
+                    }),
+                });
+
+                const data = await response.json();
+                console.log('Verify OTP response:', data);
+
+                if (data.success) {
+                    sessionString = data.session_string;
+                    localStorage.setItem('telegram_session', sessionString);
+                    showPage('dashboardPage');
+                } else if (data.error === '2FA_REQUIRED') {
+                    // Keep the same session_id for 2FA
+                    console.log('2FA required, keeping session:', sessionId);
+                    showPage('passwordPage');
+                } else if (data.error === 'OTP_EXPIRED') {
+                    showError('otpError', 'OTP expired. Please request a new code.');
+                    setTimeout(() => backToLogin(), 2000);
+                } else if (data.error === 'INVALID_CODE') {
+                    showError('otpError', 'Invalid OTP code. Please try again.');
+                } else {
+                    showError('otpError', data.message || data.error || 'Invalid OTP code');
+                }
+            } catch (error) {
+                console.error('Error:', error);
+                showError('otpError', 'Failed to verify OTP. Check console for details.');
+            } finally {
+                setButtonLoading('verifyBtn', false);
+            }
+        }
+
+        async function verify2FA() {
+            const password = document.getElementById('password2FA').value;
+            
+            if (!password) {
+                showError('passwordError', 'Please enter your 2FA password');
+                return;
+            }
+
+            if (!sessionId) {
+                showError('passwordError', 'Session expired. Please start over.');
+                setTimeout(() => backToLogin(), 2000);
+                return;
+            }
+
+            setButtonLoading('passwordBtn', true);
+
+            try {
+                const response = await fetch(`${API_URL}/verify-2fa`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ 
+                        session_id: sessionId,
+                        password 
+                    }),
+                });
+
+                const data = await response.json();
+                console.log('Verify 2FA response:', data);
+
+                if (data.success) {
+                    sessionString = data.session_string;
+                    localStorage.setItem('telegram_session', sessionString);
+                    showPage('dashboardPage');
+                } else if (data.error === 'INVALID_PASSWORD') {
+                    showError('passwordError', 'Invalid 2FA password. Please try again.');
+                } else if (data.error === 'CLIENT_DISCONNECTED') {
+                    showError('passwordError', '2FA session expired. Please start over.');
+                    setTimeout(() => backToLogin(), 2000);
+                } else {
+                    showError('passwordError', data.message || data.error || 'Invalid password');
+                }
+            } catch (error) {
+                console.error('Error:', error);
+                showError('passwordError', 'Failed to verify password. Check console for details.');
+            } finally {
+                setButtonLoading('passwordBtn', false);
+            }
+        }
+
+        function backToLogin() {
+            sessionId = '';
+            showPage('loginPage');
+            document.getElementById('otpCode').value = '';
+            document.getElementById('password2FA').value = '';
+        }
+
+        // Dashboard functions
+        function toggleDice(number) {
+            const box = document.querySelector(`[data-value="${number}"]`);
+            const index = selectedDice.indexOf(number);
+            
+            if (index > -1) {
+                selectedDice.splice(index, 1);
+                box.classList.remove('selected');
+            } else {
+                selectedDice.push(number);
+                box.classList.add('selected');
+            }
+            
+            localStorage.setItem('selected_dice', JSON.stringify(selectedDice));
+        }
+
+        async function sendDice() {
+            const chatId = document.getElementById('chatId').value.trim();
+            
+            if (!chatId) {
+                showError('errorMsg', 'Please enter a chat ID');
+                return;
+            }
+            
+            if (selectedDice.length === 0) {
+                showError('errorMsg', 'Please select at least one dice number');
+                return;
+            }
+            
+            localStorage.setItem('chat_id', chatId);
+
+            setButtonLoading('sendDiceBtn', true);
+
+            try {
+                showSuccess('Sending dice... This may take a moment');
+                
+                const response = await fetch(`${API_URL}/send-dice`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        session: sessionString,
+                        chat_id: chatId,
+                        dice_numbers: selectedDice
+                    }),
+                });
+
+                const data = await response.json();
+                console.log('Send dice response:', data);
+
+                if (data.success) {
+                    showSuccess(`Success! ${data.message}`);
+                } else {
+                    // Check if session is invalid
+                    if (data.error && (data.error.includes('Invalid') || data.error.includes('expired'))) {
+                        showError('errorMsg', 'Session expired. Please login again.');
+                        setTimeout(() => logout(), 2000);
+                    } else {
+                        showError('errorMsg', data.error || 'Failed to send dice');
+                    }
+                }
+            } catch (error) {
+                console.error('Error:', error);
+                showError('errorMsg', 'Failed to send dice. Please try again.');
+            } finally {
+                setButtonLoading('sendDiceBtn', false);
+            }
+        }
+
+        function logout() {
+            localStorage.removeItem('telegram_session');
+            localStorage.removeItem('chat_id');
+            localStorage.removeItem('selected_dice');
+            
+            sessionString = '';
+            sessionId = '';
+            selectedDice = [];
+            
+            document.getElementById('phoneNumber').value = '';
+            document.getElementById('otpCode').value = '';
+            document.getElementById('chatId').value = '';
+            document.getElementById('password2FA').value = '';
+            document.querySelectorAll('.dice-box').forEach(box => {
+                box.classList.remove('selected');
+            });
+            
+            showPage('loginPage');
+        }
+
+        // UI helpers
+        function setButtonLoading(btnId, isLoading) {
+            const btn = document.getElementById(btnId);
+            const textSpan = document.getElementById(btnId + 'Text');
+            
+            if (isLoading) {
+                btn.disabled = true;
+                textSpan.innerHTML = '<span class="loading"></span>Loading...';
+            } else {
+                btn.disabled = false;
+                if (btnId === 'loginBtn') textSpan.textContent = 'Login with Telegram';
+                else if (btnId === 'verifyBtn') textSpan.textContent = 'Verify OTP';
+                else if (btnId === 'passwordBtn') textSpan.textContent = 'Verify Password';
+                else if (btnId === 'sendDiceBtn') textSpan.textContent = '🎲 Send Dice';
+            }
+        }
+
+        function showSuccess(message) {
+            hideAllMessages();
+            const successMsg = document.getElementById('successMsg');
+            successMsg.textContent = message;
+            successMsg.classList.add('show');
+            
+            setTimeout(() => {
+                successMsg.classList.remove('show');
+            }, 5000);
+        }
+
+        function showError(elementId, message) {
+            hideAllMessages();
+            const errorMsg = document.getElementById(elementId);
+            errorMsg.textContent = message;
+            errorMsg.classList.add('show');
+            
+            setTimeout(() => {
+                errorMsg.classList.remove('show');
+            }, 5000);
+        }
+
+        // Initialize on load
+        init();
+    </script>
+</body>
+</html>
