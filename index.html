@@ -104,6 +104,12 @@
             margin-top: 6px;
             color: #666;
             font-size: 12px;
+            line-height: 1.4;
+        }
+
+        .input-group small.info {
+            color: #0088cc;
+            font-weight: 500;
         }
 
         .btn {
@@ -337,7 +343,12 @@
                 </div>
 
                 <div class="input-group">
-                    <label>Select Dice Numbers (1-6)</label>
+                    <label for="maxDeletions">Deletion Limit (Optional)</label>
+                    <input type="number" id="maxDeletions" placeholder="Leave empty for default (delete once)" min="0" max="10" />
+                </div>
+
+                <div class="input-group">
+                    <label>Select Bad Dice Numbers (to handle specially)</label>
                     <div class="dice-grid">
                         <div class="dice-box" data-value="1" onclick="toggleDice(1)">1</div>
                         <div class="dice-box" data-value="2" onclick="toggleDice(2)">2</div>
@@ -346,6 +357,7 @@
                         <div class="dice-box" data-value="5" onclick="toggleDice(5)">5</div>
                         <div class="dice-box" data-value="6" onclick="toggleDice(6)">6</div>
                     </div>
+                    <small>Selected numbers: First occurrence is kept, repeats are deleted (up to limit)</small>
                 </div>
 
                 <button class="btn" id="sendDiceBtn" onclick="sendDice()">
@@ -370,12 +382,17 @@
             sessionString = localStorage.getItem('telegram_session') || '';
             const savedChatId = localStorage.getItem('chat_id') || '';
             const savedDice = localStorage.getItem('selected_dice') || '';
+            const savedMaxDeletions = localStorage.getItem('max_deletions') || '';
 
             if (sessionString) {
                 showPage('dashboardPage');
                 
                 if (savedChatId) {
                     document.getElementById('chatId').value = savedChatId;
+                }
+                
+                if (savedMaxDeletions) {
+                    document.getElementById('maxDeletions').value = savedMaxDeletions;
                 }
                 
                 if (savedDice) {
@@ -452,7 +469,7 @@
                 }
             } catch (error) {
                 console.error('Error:', error);
-                showError('loginError', 'Failed to connect to server. Make sure the backend is running on port 5000.');
+                showError('loginError', 'Failed to connect to server. Make sure the backend is running on port 8000.');
             } finally {
                 setButtonLoading('loginBtn', false);
             }
@@ -589,6 +606,7 @@
 
         async function sendDice() {
             const chatId = document.getElementById('chatId').value.trim();
+            const maxDeletionsInput = document.getElementById('maxDeletions').value.trim();
             
             if (!chatId) {
                 showError('errorMsg', 'Please enter a chat ID');
@@ -600,30 +618,54 @@
                 return;
             }
             
+            // Parse max_deletions: empty string = null (default), otherwise parse as int
+            let maxDeletions = null;
+            if (maxDeletionsInput !== '') {
+                maxDeletions = parseInt(maxDeletionsInput);
+                if (isNaN(maxDeletions) || maxDeletions < 0) {
+                    showError('errorMsg', 'Deletion limit must be 0 or a positive number');
+                    return;
+                }
+            }
+            
             localStorage.setItem('chat_id', chatId);
+            localStorage.setItem('max_deletions', maxDeletionsInput);
 
             setButtonLoading('sendDiceBtn', true);
 
             try {
                 showSuccess('Sending dice... This may take a moment');
                 
+                const requestBody = {
+                    session: sessionString,
+                    chat_id: chatId,
+                    dice_numbers: selectedDice
+                };
+                
+                // Only include max_deletions if it was set
+                if (maxDeletions !== null) {
+                    requestBody.max_deletions = maxDeletions;
+                }
+                
+                console.log('Sending request:', requestBody);
+                
                 const response = await fetch(`${API_URL}/send-dice`, {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
                     },
-                    body: JSON.stringify({
-                        session: sessionString,
-                        chat_id: chatId,
-                        dice_numbers: selectedDice
-                    }),
+                    body: JSON.stringify(requestBody),
                 });
 
                 const data = await response.json();
                 console.log('Send dice response:', data);
 
                 if (data.success) {
-                    showSuccess(`Success! ${data.message}`);
+                    let message = `Success! ${data.message}`;
+                    if (data.deleted > 0) {
+                        message += ` (Deleted: ${data.deleted})`;
+                    }
+                    showSuccess(message);
                 } else {
                     // Check if session is invalid
                     if (data.error && (data.error.includes('Invalid') || data.error.includes('expired'))) {
@@ -645,6 +687,7 @@
             localStorage.removeItem('telegram_session');
             localStorage.removeItem('chat_id');
             localStorage.removeItem('selected_dice');
+            localStorage.removeItem('max_deletions');
             
             sessionString = '';
             sessionId = '';
@@ -654,6 +697,7 @@
             document.getElementById('otpCode').value = '';
             document.getElementById('chatId').value = '';
             document.getElementById('password2FA').value = '';
+            document.getElementById('maxDeletions').value = '';
             document.querySelectorAll('.dice-box').forEach(box => {
                 box.classList.remove('selected');
             });
