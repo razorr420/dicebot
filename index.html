@@ -157,6 +157,15 @@
             box-shadow: 0 6px 20px rgba(239, 68, 68, 0.4);
         }
 
+        .btn-purple {
+            background: linear-gradient(135deg, #8b5cf6, #7c3aed);
+            box-shadow: 0 4px 15px rgba(139, 92, 246, 0.3);
+        }
+
+        .btn-purple:hover:not(:disabled) {
+            box-shadow: 0 6px 20px rgba(139, 92, 246, 0.4);
+        }
+
         .dice-grid {
             display: grid;
             grid-template-columns: repeat(3, 1fr);
@@ -299,19 +308,21 @@
 
         .tab-container {
             display: flex;
-            gap: 10px;
+            gap: 5px;
             margin-bottom: 25px;
             border-bottom: 2px solid #f0f0f0;
+            flex-wrap: wrap;
         }
 
         .tab {
             flex: 1;
-            padding: 12px;
+            min-width: 80px;
+            padding: 12px 8px;
             background: transparent;
             border: none;
             border-bottom: 3px solid transparent;
             cursor: pointer;
-            font-size: 15px;
+            font-size: 13px;
             font-weight: 600;
             color: #666;
             transition: all 0.3s ease;
@@ -553,6 +564,42 @@
         .input-with-icon input {
             padding-right: 45px;
         }
+
+        /* Section header style */
+        .section-header {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 20px;
+            padding-bottom: 10px;
+            border-bottom: 2px solid #f0f0f0;
+        }
+
+        .section-header .icon {
+            font-size: 24px;
+        }
+
+        .section-header h3 {
+            color: #333;
+            font-size: 18px;
+            font-weight: 600;
+        }
+
+        .section-header small {
+            color: #666;
+            font-size: 12px;
+            margin-left: auto;
+        }
+
+        /* DM specific styles */
+        .dm-badge {
+            background: linear-gradient(135deg, #8b5cf6, #7c3aed);
+            color: white;
+            padding: 4px 10px;
+            border-radius: 12px;
+            font-size: 11px;
+            font-weight: 600;
+        }
     </style>
 </head>
 
@@ -627,15 +674,21 @@
 
                 <!-- Tabs -->
                 <div class="tab-container">
-                    <button class="tab active" onclick="switchTab('manualTab')">Manual Send</button>
+                    <button class="tab active" onclick="switchTab('manualTab')">Group Send</button>
+                    <button class="tab" onclick="switchTab('dmTab')">Personal DM</button>
                     <button class="tab" onclick="switchTab('trackerTab')">Auto Tracker</button>
                 </div>
 
                 <div class="success-msg" id="successMsg"></div>
                 <div class="error-msg" id="errorMsg"></div>
 
-                <!-- Manual Send Tab -->
+                <!-- Manual Send Tab (Group) -->
                 <div id="manualTab" class="tab-content active">
+                    <div class="section-header">
+                        <span class="icon">👥</span>
+                        <h3>Send to Group/Channel</h3>
+                    </div>
+
                     <div class="input-group">
                         <label for="chatId">Chat ID</label>
                         <input type="text" id="chatId" placeholder="Enter chat ID or username" />
@@ -663,6 +716,50 @@
 
                     <button class="btn" id="sendDiceBtn" onclick="sendDice()">
                         <span id="sendDiceBtnText">🎲 Send Dice</span>
+                    </button>
+                </div>
+
+                <!-- Personal DM Tab (NEW) -->
+                <div id="dmTab" class="tab-content">
+                    <div class="section-header">
+                        <span class="icon">💬</span>
+                        <h3>Send to Personal DM</h3>
+                        <span class="dm-badge">Direct Message</span>
+                    </div>
+
+                    <div class="input-group">
+                        <label for="dmUserId">User ID / Username</label>
+                        <input type="text" id="dmUserId" placeholder="@username or numeric user ID" />
+                        <small>Enter the user's @username or their numeric Telegram ID</small>
+                    </div>
+
+                    <div class="input-group">
+                        <label for="dmMaxDeletions">Deletion Limit (Optional)</label>
+                        <input type="number" id="dmMaxDeletions" placeholder="Leave empty for default" min="0" max="10" />
+                        <small>Empty = keep first, delete rest | 0 = never delete | 1+ = delete that many times</small>
+                    </div>
+
+                    <div class="input-group">
+                        <label for="dmTotalDice">Total Dice to Send</label>
+                        <input type="number" id="dmTotalDice" placeholder="6" min="1" max="20" value="6" />
+                        <small>Number of dice to send (default: 6)</small>
+                    </div>
+
+                    <div class="input-group">
+                        <label>Select Bad Dice Numbers</label>
+                        <div class="dice-grid" id="dmDiceGrid">
+                            <div class="dice-box" data-value="1" onclick="toggleDice(1, 'dm')">1</div>
+                            <div class="dice-box" data-value="2" onclick="toggleDice(2, 'dm')">2</div>
+                            <div class="dice-box" data-value="3" onclick="toggleDice(3, 'dm')">3</div>
+                            <div class="dice-box" data-value="4" onclick="toggleDice(4, 'dm')">4</div>
+                            <div class="dice-box" data-value="5" onclick="toggleDice(5, 'dm')">5</div>
+                            <div class="dice-box" data-value="6" onclick="toggleDice(6, 'dm')">6</div>
+                        </div>
+                        <small>First occurrence kept, repeats deleted (up to limit)</small>
+                    </div>
+
+                    <button class="btn btn-purple" id="sendDmDiceBtn" onclick="sendDmDice()">
+                        <span id="sendDmDiceBtnText">💬 Send Dice to DM</span>
                     </button>
                 </div>
 
@@ -780,6 +877,7 @@
 
         let selectedDiceManual = [];
         let selectedDiceTracker = [];
+        let selectedDiceDm = []; // NEW: For DM tab
         let sessionString = '';
         let sessionId = '';
         let apiKey = '';
@@ -837,11 +935,22 @@
             const savedTrackerLimit = localStorage.getItem('tracker_limit') || '';
             const savedReplaceUntilGood = localStorage.getItem('replace_until_good') === 'true';
 
+            // NEW: Load DM saved data
+            const savedDmUserId = localStorage.getItem('dm_user_id') || '';
+            const savedDmDice = localStorage.getItem('dm_dice') || '';
+            const savedDmMaxDeletions = localStorage.getItem('dm_max_deletions') || '';
+            const savedDmTotalDice = localStorage.getItem('dm_total_dice') || '6';
+
             if (savedChatId) document.getElementById('chatId').value = savedChatId;
             if (savedMaxDeletions) document.getElementById('maxDeletions').value = savedMaxDeletions;
             if (savedTrackerChatId) document.getElementById('trackerChatIdInput').value = savedTrackerChatId;
             if (savedTrackerLimit) document.getElementById('trackerDeletionLimitInput').value = savedTrackerLimit;
             document.getElementById('replaceUntilGoodSwitch').checked = savedReplaceUntilGood;
+
+            // NEW: Load DM fields
+            if (savedDmUserId) document.getElementById('dmUserId').value = savedDmUserId;
+            if (savedDmMaxDeletions) document.getElementById('dmMaxDeletions').value = savedDmMaxDeletions;
+            if (savedDmTotalDice) document.getElementById('dmTotalDice').value = savedDmTotalDice;
 
             if (savedDice) {
                 try {
@@ -866,6 +975,19 @@
                     selectedDiceTracker = [];
                 }
             }
+
+            // NEW: Load DM dice selections
+            if (savedDmDice) {
+                try {
+                    selectedDiceDm = JSON.parse(savedDmDice);
+                    selectedDiceDm.forEach(num => {
+                        const box = document.querySelector(`#dmDiceGrid [data-value="${num}"]`);
+                        if (box) box.classList.add('selected');
+                    });
+                } catch (e) {
+                    selectedDiceDm = [];
+                }
+            }
         }
 
         function showPage(pageId) {
@@ -878,10 +1000,14 @@
             document.querySelectorAll('.tab').forEach(tab => tab.classList.remove('active'));
             document.querySelectorAll('.tab-content').forEach(content => content.classList.remove('active'));
             
+            // Find and activate the correct tab button
+            const tabs = document.querySelectorAll('.tab');
             if (tabId === 'manualTab') {
-                document.querySelectorAll('.tab')[0].classList.add('active');
-            } else {
-                document.querySelectorAll('.tab')[1].classList.add('active');
+                tabs[0].classList.add('active');
+            } else if (tabId === 'dmTab') {
+                tabs[1].classList.add('active');
+            } else if (tabId === 'trackerTab') {
+                tabs[2].classList.add('active');
             }
             
             document.getElementById(tabId).classList.add('active');
@@ -1012,9 +1138,23 @@
         }
 
         function toggleDice(number, type) {
-            const grid = type === 'manual' ? 'manualDiceGrid' : 'trackerDiceGrid';
+            let grid, arr, storageKey;
+            
+            if (type === 'manual') {
+                grid = 'manualDiceGrid';
+                arr = selectedDiceManual;
+                storageKey = 'selected_dice';
+            } else if (type === 'dm') {
+                grid = 'dmDiceGrid';
+                arr = selectedDiceDm;
+                storageKey = 'dm_dice';
+            } else {
+                grid = 'trackerDiceGrid';
+                arr = selectedDiceTracker;
+                storageKey = 'tracker_dice';
+            }
+            
             const box = document.querySelector(`#${grid} [data-value="${number}"]`);
-            const arr = type === 'manual' ? selectedDiceManual : selectedDiceTracker;
             const index = arr.indexOf(number);
 
             if (index > -1) {
@@ -1025,11 +1165,7 @@
                 box.classList.add('selected');
             }
 
-            if (type === 'manual') {
-                localStorage.setItem('selected_dice', JSON.stringify(selectedDiceManual));
-            } else {
-                localStorage.setItem('tracker_dice', JSON.stringify(selectedDiceTracker));
-            }
+            localStorage.setItem(storageKey, JSON.stringify(arr));
         }
 
         async function sendDice() {
@@ -1090,6 +1226,82 @@
                 showError('errorMsg', 'Failed to send dice');
             } finally {
                 setButtonLoading('sendDiceBtn', false);
+            }
+        }
+
+        // NEW: Send Dice to Personal DM
+        async function sendDmDice() {
+            const userId = document.getElementById('dmUserId').value.trim();
+            const maxDeletionsInput = document.getElementById('dmMaxDeletions').value.trim();
+            const totalDiceInput = document.getElementById('dmTotalDice').value.trim();
+
+            if (!userId) {
+                showError('errorMsg', 'Please enter a user ID or username');
+                return;
+            }
+
+            if (selectedDiceDm.length === 0) {
+                showError('errorMsg', 'Please select at least one dice number');
+                return;
+            }
+
+            let maxDeletions = null;
+            if (maxDeletionsInput !== '') {
+                maxDeletions = parseInt(maxDeletionsInput);
+                if (isNaN(maxDeletions) || maxDeletions < 0) {
+                    showError('errorMsg', 'Deletion limit must be 0 or positive');
+                    return;
+                }
+            }
+
+            let totalDice = 6;
+            if (totalDiceInput !== '') {
+                totalDice = parseInt(totalDiceInput);
+                if (isNaN(totalDice) || totalDice < 1 || totalDice > 20) {
+                    showError('errorMsg', 'Total dice must be between 1 and 20');
+                    return;
+                }
+            }
+
+            // Save to localStorage
+            localStorage.setItem('dm_user_id', userId);
+            localStorage.setItem('dm_max_deletions', maxDeletionsInput);
+            localStorage.setItem('dm_total_dice', totalDiceInput || '6');
+
+            setButtonLoading('sendDmDiceBtn', true);
+            try {
+                showSuccess('Sending dice to DM...');
+                
+                const requestBody = {
+                    session: sessionString,
+                    chat_id: userId,  // User ID works the same as chat_id for DMs
+                    dice_numbers: selectedDiceDm,
+                    total_dice: totalDice
+                };
+                if (maxDeletions !== null) requestBody.max_deletions = maxDeletions;
+
+                const response = await fetch(`${API_URL}/send-dice`, {
+                    method: 'POST',
+                    headers: { 
+                        'Content-Type': 'application/json',
+                        'X-API-Key': apiKey
+                    },
+                    body: JSON.stringify(requestBody),
+                });
+                const data = await response.json();
+                if (data.success) {
+                    showSuccess(`Success! ${data.message}`);
+                } else {
+                    if (response.status === 401) {
+                        showError('errorMsg', 'Invalid API key. Please logout and login again.');
+                    } else {
+                        showError('errorMsg', data.error || 'Failed to send dice to DM');
+                    }
+                }
+            } catch (error) {
+                showError('errorMsg', 'Failed to send dice to DM');
+            } finally {
+                setButtonLoading('sendDmDiceBtn', false);
             }
         }
 
@@ -1455,12 +1667,18 @@
             localStorage.removeItem('tracker_dice');
             localStorage.removeItem('tracker_limit');
             localStorage.removeItem('replace_until_good');
+            // NEW: Clear DM storage
+            localStorage.removeItem('dm_user_id');
+            localStorage.removeItem('dm_dice');
+            localStorage.removeItem('dm_max_deletions');
+            localStorage.removeItem('dm_total_dice');
 
             sessionString = '';
             sessionId = '';
             apiKey = '';
             selectedDiceManual = [];
             selectedDiceTracker = [];
+            selectedDiceDm = []; // NEW
             trackerRunning = false;
 
             document.getElementById('phoneNumber').value = '';
@@ -1473,6 +1691,10 @@
             document.getElementById('trackerDeletionLimitInput').value = '';
             document.getElementById('trackerSwitch').checked = false;
             document.getElementById('replaceUntilGoodSwitch').checked = false;
+            // NEW: Clear DM fields
+            document.getElementById('dmUserId').value = '';
+            document.getElementById('dmMaxDeletions').value = '';
+            document.getElementById('dmTotalDice').value = '6';
             
             document.querySelectorAll('.dice-box').forEach(box => box.classList.remove('selected'));
 
@@ -1492,6 +1714,7 @@
                 else if (btnId === 'verifyBtn') textSpan.textContent = 'Verify OTP';
                 else if (btnId === 'passwordBtn') textSpan.textContent = 'Verify Password';
                 else if (btnId === 'sendDiceBtn') textSpan.textContent = '🎲 Send Dice';
+                else if (btnId === 'sendDmDiceBtn') textSpan.textContent = '💬 Send Dice to DM';
             }
         }
 
