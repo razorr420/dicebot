@@ -66,10 +66,14 @@
         .global-timer {
             background: linear-gradient(135deg, #1a1a2e, #16213e);
             padding: 15px 20px;
-            display: flex;
+            display: none;
             align-items: center;
             justify-content: space-between;
             border-bottom: 1px solid rgba(255,255,255,0.1);
+        }
+
+        .global-timer.show {
+            display: flex;
         }
 
         .timer-left {
@@ -159,7 +163,11 @@
             background: rgba(255,255,255,0.1);
             border-radius: 2px;
             overflow: hidden;
-            margin-top: 10px;
+            display: none;
+        }
+
+        .timer-progress.show {
+            display: block;
         }
 
         .timer-progress-bar {
@@ -279,16 +287,6 @@
 
         .btn-purple:hover:not(:disabled) {
             box-shadow: 0 6px 20px rgba(139, 92, 246, 0.4);
-        }
-
-        .btn-reset-timer {
-            background: linear-gradient(135deg, #f59e0b, #d97706);
-            box-shadow: 0 4px 15px rgba(245, 158, 11, 0.3);
-            margin-top: 10px;
-        }
-
-        .btn-reset-timer:hover:not(:disabled) {
-            box-shadow: 0 6px 20px rgba(245, 158, 11, 0.4);
         }
 
         .dice-grid {
@@ -638,6 +636,11 @@
             background: #fef2f2;
         }
 
+        .log-entry.system {
+            border-left-color: #f59e0b;
+            background: #fffbeb;
+        }
+
         .log-entry .time {
             color: #666;
             font-size: 11px;
@@ -773,6 +776,45 @@
             color: #666;
             margin-bottom: 20px;
         }
+
+        /* Timer info box in tracker tab */
+        .timer-info-box {
+            background: linear-gradient(135deg, #1a1a2e, #16213e);
+            padding: 15px;
+            border-radius: 12px;
+            margin-bottom: 20px;
+            color: white;
+            display: none;
+        }
+
+        .timer-info-box.show {
+            display: block;
+        }
+
+        .timer-info-box .timer-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .timer-info-box .timer-label {
+            font-size: 12px;
+            color: #888;
+        }
+
+        .timer-info-box .timer-value {
+            font-size: 24px;
+            font-weight: bold;
+            font-family: 'Courier New', monospace;
+            color: #00ff88;
+        }
+
+        .timer-info-box .timer-note {
+            font-size: 11px;
+            color: #666;
+            margin-top: 8px;
+            text-align: center;
+        }
     </style>
 </head>
 
@@ -781,9 +823,9 @@
     <div class="session-expired-overlay" id="sessionExpiredOverlay">
         <div class="session-expired-box">
             <div class="icon">⏰</div>
-            <h2>Session Expired</h2>
-            <p>Your 5-minute session has ended. All processes have been stopped automatically.</p>
-            <button class="btn" onclick="resetSession()">Start New Session</button>
+            <h2>Tracker Auto-Stopped</h2>
+            <p>Your tracker session has ended after 5 minutes. The tracker has been stopped automatically.</p>
+            <button class="btn" onclick="closeExpiredOverlay()">OK, Got it</button>
         </div>
     </div>
 
@@ -793,20 +835,20 @@
             <p>Send dice & auto tracker</p>
         </div>
 
-        <!-- Global Timer (visible on all pages after login) -->
-        <div class="global-timer" id="globalTimer" style="display: none;">
+        <!-- Global Timer (visible only when tracker is running) -->
+        <div class="global-timer" id="globalTimer">
             <div class="timer-left">
                 <span class="timer-icon" id="timerIcon">⏱️</span>
                 <div>
-                    <div class="timer-label">Session Time Left</div>
+                    <div class="timer-label">Tracker Auto-Stop In</div>
                     <div class="timer-display" id="timerDisplay">05:00</div>
                 </div>
             </div>
             <div class="timer-status">
-                <span class="timer-status-badge active" id="timerStatusBadge">● Active</span>
+                <span class="timer-status-badge active" id="timerStatusBadge">● Tracker Active</span>
             </div>
         </div>
-        <div class="timer-progress" id="timerProgressContainer" style="display: none;">
+        <div class="timer-progress" id="timerProgressContainer">
             <div class="timer-progress-bar" id="timerProgressBar" style="width: 100%;"></div>
         </div>
 
@@ -965,6 +1007,15 @@
 
                 <!-- Auto Tracker Tab -->
                 <div id="trackerTab" class="tab-content">
+                    <!-- Timer Info Box (shown when tracker is running) -->
+                    <div class="timer-info-box" id="trackerTimerInfo">
+                        <div class="timer-row">
+                            <span class="timer-label">⏱️ Auto-Stop In</span>
+                            <span class="timer-value" id="trackerTimerDisplay">05:00</span>
+                        </div>
+                        <div class="timer-note">Tracker will automatically stop after 5 minutes</div>
+                    </div>
+
                     <!-- Tracker Toggle -->
                     <div class="switch-container">
                         <span class="switch-label">Auto Tracker</span>
@@ -1067,11 +1118,6 @@
                     </div>
                 </div>
 
-                <!-- Reset Timer Button -->
-                <button class="btn btn-reset-timer" onclick="resetTimer()">
-                    🔄 Reset Timer (5 min)
-                </button>
-
                 <button class="btn logout-btn" onclick="logout()">Logout</button>
             </div>
         </div>
@@ -1080,12 +1126,10 @@
     <script>
         const API_URL = 'https://api.jdeestore.in/api';
 
-        // Timer configuration
-        const SESSION_DURATION = 5 * 60; // 5 minutes in seconds
-        let sessionTimeRemaining = SESSION_DURATION;
-        let sessionTimerInterval = null;
-        let sessionStartTime = null;
-        let isSessionActive = false;
+        // Timer configuration - starts only when tracker starts
+        const TRACKER_DURATION = 5 * 60; // 5 minutes in seconds
+        let trackerTimeRemaining = TRACKER_DURATION;
+        let trackerTimerInterval = null;
 
         let selectedDiceManual = [];
         let selectedDiceTracker = [];
@@ -1100,79 +1144,63 @@
 
         // ============= TIMER FUNCTIONS =============
 
-        function startSessionTimer() {
-            // Check if there's a saved timer
-            const savedTimerStart = localStorage.getItem('session_timer_start');
-            const savedTimerDuration = localStorage.getItem('session_timer_duration');
+        function startTrackerTimer() {
+            // Reset timer to full duration
+            trackerTimeRemaining = TRACKER_DURATION;
             
-            if (savedTimerStart && savedTimerDuration) {
-                const elapsed = Math.floor((Date.now() - parseInt(savedTimerStart)) / 1000);
-                const remaining = parseInt(savedTimerDuration) - elapsed;
-                
-                if (remaining > 0) {
-                    sessionTimeRemaining = remaining;
-                    sessionStartTime = parseInt(savedTimerStart);
-                } else {
-                    // Timer already expired
-                    handleSessionExpiry();
-                    return;
-                }
-            } else {
-                // Start fresh timer
-                sessionTimeRemaining = SESSION_DURATION;
-                sessionStartTime = Date.now();
-                localStorage.setItem('session_timer_start', sessionStartTime.toString());
-                localStorage.setItem('session_timer_duration', SESSION_DURATION.toString());
-            }
-            
-            isSessionActive = true;
+            // Show timer UI
             showTimer();
             updateTimerDisplay();
             
             // Clear existing interval if any
-            if (sessionTimerInterval) {
-                clearInterval(sessionTimerInterval);
+            if (trackerTimerInterval) {
+                clearInterval(trackerTimerInterval);
             }
             
             // Start countdown
-            sessionTimerInterval = setInterval(() => {
-                sessionTimeRemaining--;
+            trackerTimerInterval = setInterval(() => {
+                trackerTimeRemaining--;
                 updateTimerDisplay();
                 
-                if (sessionTimeRemaining <= 0) {
-                    handleSessionExpiry();
+                if (trackerTimeRemaining <= 0) {
+                    handleTrackerExpiry();
                 }
             }, 1000);
+            
+            console.log('Tracker timer started - 5 minutes');
         }
 
         function updateTimerDisplay() {
-            const minutes = Math.floor(sessionTimeRemaining / 60);
-            const seconds = sessionTimeRemaining % 60;
+            const minutes = Math.floor(trackerTimeRemaining / 60);
+            const seconds = trackerTimeRemaining % 60;
             const display = `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
             
+            // Update all timer displays
             const timerDisplay = document.getElementById('timerDisplay');
+            const trackerTimerDisplay = document.getElementById('trackerTimerDisplay');
             const timerProgressBar = document.getElementById('timerProgressBar');
             const timerIcon = document.getElementById('timerIcon');
             const timerStatusBadge = document.getElementById('timerStatusBadge');
             
             timerDisplay.textContent = display;
+            trackerTimerDisplay.textContent = display;
             
             // Calculate progress percentage
-            const progressPercent = (sessionTimeRemaining / SESSION_DURATION) * 100;
+            const progressPercent = (trackerTimeRemaining / TRACKER_DURATION) * 100;
             timerProgressBar.style.width = `${progressPercent}%`;
             
             // Update visual states based on time remaining
             timerDisplay.classList.remove('warning', 'critical');
             timerProgressBar.classList.remove('warning', 'critical');
             
-            if (sessionTimeRemaining <= 60) {
+            if (trackerTimeRemaining <= 60) {
                 // Critical: Less than 1 minute
                 timerDisplay.classList.add('critical');
                 timerProgressBar.classList.add('critical');
                 timerIcon.textContent = '🚨';
-                timerStatusBadge.textContent = '⚠️ Expiring Soon';
+                timerStatusBadge.textContent = '⚠️ Stopping Soon';
                 timerStatusBadge.className = 'timer-status-badge expired';
-            } else if (sessionTimeRemaining <= 120) {
+            } else if (trackerTimeRemaining <= 120) {
                 // Warning: Less than 2 minutes
                 timerDisplay.classList.add('warning');
                 timerProgressBar.classList.add('warning');
@@ -1181,70 +1209,44 @@
                 timerStatusBadge.className = 'timer-status-badge inactive';
             } else {
                 timerIcon.textContent = '⏱️';
-                timerStatusBadge.textContent = '● Active';
+                timerStatusBadge.textContent = '● Tracker Active';
                 timerStatusBadge.className = 'timer-status-badge active';
             }
         }
 
         function showTimer() {
-            document.getElementById('globalTimer').style.display = 'flex';
-            document.getElementById('timerProgressContainer').style.display = 'block';
+            document.getElementById('globalTimer').classList.add('show');
+            document.getElementById('timerProgressContainer').classList.add('show');
+            document.getElementById('trackerTimerInfo').classList.add('show');
         }
 
         function hideTimer() {
-            document.getElementById('globalTimer').style.display = 'none';
-            document.getElementById('timerProgressContainer').style.display = 'none';
+            document.getElementById('globalTimer').classList.remove('show');
+            document.getElementById('timerProgressContainer').classList.remove('show');
+            document.getElementById('trackerTimerInfo').classList.remove('show');
         }
 
-        function stopSessionTimer() {
-            if (sessionTimerInterval) {
-                clearInterval(sessionTimerInterval);
-                sessionTimerInterval = null;
+        function stopTrackerTimer() {
+            if (trackerTimerInterval) {
+                clearInterval(trackerTimerInterval);
+                trackerTimerInterval = null;
             }
-            isSessionActive = false;
+            hideTimer();
         }
 
-        function resetTimer() {
-            sessionTimeRemaining = SESSION_DURATION;
-            sessionStartTime = Date.now();
-            localStorage.setItem('session_timer_start', sessionStartTime.toString());
-            localStorage.setItem('session_timer_duration', SESSION_DURATION.toString());
+        async function handleTrackerExpiry() {
+            console.log('Tracker timer expired - auto stopping...');
             
-            updateTimerDisplay();
-            showSuccess('Timer reset to 5 minutes!');
-        }
-
-        async function handleSessionExpiry() {
-            stopSessionTimer();
-            isSessionActive = false;
+            // Stop the timer
+            stopTrackerTimer();
             
             // Show expired overlay
             document.getElementById('sessionExpiredOverlay').classList.add('show');
             
-            // Stop all processes
-            await stopAllProcesses();
-            
-            // Update timer display
-            const timerDisplay = document.getElementById('timerDisplay');
-            const timerStatusBadge = document.getElementById('timerStatusBadge');
-            
-            timerDisplay.textContent = '00:00';
-            timerDisplay.classList.add('critical');
-            timerStatusBadge.textContent = '● Expired';
-            timerStatusBadge.className = 'timer-status-badge expired';
-            
-            // Clear timer storage
-            localStorage.removeItem('session_timer_start');
-            localStorage.removeItem('session_timer_duration');
-        }
-
-        async function stopAllProcesses() {
-            console.log('Stopping all processes due to session expiry...');
-            
-            // Stop tracker if running
+            // Stop the tracker via API
             if (trackerRunning) {
                 try {
-                    await fetch(`${API_URL}/tracker/stop`, {
+                    const response = await fetch(`${API_URL}/tracker/stop`, {
                         method: 'POST',
                         headers: { 
                             'Content-Type': 'application/json',
@@ -1252,55 +1254,33 @@
                         },
                         body: JSON.stringify({ session: sessionString }),
                     });
-                    trackerRunning = false;
-                    document.getElementById('trackerSwitch').checked = false;
-                    updateTrackerUI(false);
-                    console.log('Tracker stopped');
+                    
+                    const data = await response.json();
+                    console.log('Tracker auto-stopped:', data);
                 } catch (error) {
-                    console.error('Failed to stop tracker:', error);
+                    console.error('Failed to auto-stop tracker:', error);
                 }
             }
             
-            // Stop tracker status updates
+            // Update UI
+            trackerRunning = false;
+            document.getElementById('trackerSwitch').checked = false;
+            updateTrackerUI(false);
+            document.getElementById('trackerConfig').style.display = 'block';
             stopTrackerStatusUpdates();
             
-            // Update dashboard status
-            const dashboardBadge = document.getElementById('dashboardStatusBadge');
-            if (dashboardBadge) {
-                dashboardBadge.textContent = '● Expired';
-                dashboardBadge.classList.add('inactive');
-            }
-            
-            // Disable all action buttons
-            const buttons = document.querySelectorAll('#dashboardPage .btn:not(.logout-btn)');
-            buttons.forEach(btn => {
-                btn.disabled = true;
+            // Add auto-stop log entry
+            activityLogs.unshift({
+                timestamp: new Date().toLocaleTimeString(),
+                dice: '⏰',
+                action: 'system',
+                reason: 'Auto-stopped after 5 minutes'
             });
+            renderActivityLog();
         }
 
-        function resetSession() {
-            // Hide overlay
+        function closeExpiredOverlay() {
             document.getElementById('sessionExpiredOverlay').classList.remove('show');
-            
-            // Clear all storage
-            localStorage.removeItem('telegram_session');
-            localStorage.removeItem('session_timer_start');
-            localStorage.removeItem('session_timer_duration');
-            
-            // Reset state
-            sessionString = '';
-            sessionId = '';
-            trackerRunning = false;
-            
-            // Re-enable buttons
-            const buttons = document.querySelectorAll('#dashboardPage .btn');
-            buttons.forEach(btn => {
-                btn.disabled = false;
-            });
-            
-            // Hide timer and go to login
-            hideTimer();
-            showPage('loginPage');
         }
 
         // ============= MAIN FUNCTIONS =============
@@ -1314,29 +1294,10 @@
             }
             
             if (sessionString && apiKey) {
-                // Check if timer has expired
-                const savedTimerStart = localStorage.getItem('session_timer_start');
-                const savedTimerDuration = localStorage.getItem('session_timer_duration');
-                
-                if (savedTimerStart && savedTimerDuration) {
-                    const elapsed = Math.floor((Date.now() - parseInt(savedTimerStart)) / 1000);
-                    const remaining = parseInt(savedTimerDuration) - elapsed;
-                    
-                    if (remaining <= 0) {
-                        // Session expired, clear and show login
-                        localStorage.removeItem('telegram_session');
-                        localStorage.removeItem('session_timer_start');
-                        localStorage.removeItem('session_timer_duration');
-                        showPage('loginPage');
-                        return;
-                    }
-                }
-                
                 verifyStoredKey().then(valid => {
                     if (valid) {
                         showPage('dashboardPage');
                         loadSavedData();
-                        startSessionTimer();
                         checkTrackerStatus();
                     } else {
                         logout();
@@ -1452,15 +1413,6 @@
             document.querySelectorAll('.error-msg, .success-msg').forEach(msg => msg.classList.remove('show'));
         }
 
-        // Check if session is still active before any action
-        function checkSessionActive() {
-            if (!isSessionActive || sessionTimeRemaining <= 0) {
-                showError('errorMsg', 'Session expired. Please start a new session.');
-                return false;
-            }
-            return true;
-        }
-
         async function sendOTP() {
             let phone = document.getElementById('phoneNumber').value.trim();
             apiKey = document.getElementById('apiKey').value.trim();
@@ -1528,7 +1480,6 @@
                     localStorage.setItem('telegram_session', sessionString);
                     showPage('dashboardPage');
                     loadSavedData();
-                    startSessionTimer(); // Start the 5-minute timer
                     checkTrackerStatus();
                 } else if (data.error === '2FA_REQUIRED') {
                     showPage('passwordPage');
@@ -1565,7 +1516,6 @@
                     localStorage.setItem('telegram_session', sessionString);
                     showPage('dashboardPage');
                     loadSavedData();
-                    startSessionTimer(); // Start the 5-minute timer
                     checkTrackerStatus();
                 } else {
                     showError('passwordError', data.message || 'Invalid password');
@@ -1614,8 +1564,6 @@
         }
 
         async function sendDice() {
-            if (!checkSessionActive()) return;
-
             const chatId = document.getElementById('chatId').value.trim();
             const maxDeletionsInput = document.getElementById('maxDeletions').value.trim();
 
@@ -1677,8 +1625,6 @@
         }
 
         async function sendDmDice() {
-            if (!checkSessionActive()) return;
-
             const userId = document.getElementById('dmUserId').value.trim();
             const maxDeletionsInput = document.getElementById('dmMaxDeletions').value.trim();
             const totalDiceInput = document.getElementById('dmTotalDice').value.trim();
@@ -1753,11 +1699,6 @@
         }
 
         async function toggleTracker() {
-            if (!checkSessionActive()) {
-                document.getElementById('trackerSwitch').checked = false;
-                return;
-            }
-
             const switchEl = document.getElementById('trackerSwitch');
             
             if (switchEl.checked) {
@@ -1834,6 +1775,9 @@
                     document.getElementById('trackerDeletionLimit').textContent = limitText;
                     document.getElementById('trackerReplaceUntilGood').textContent = replaceUntilGood ? 'Yes' : 'No';
                     
+                    // START THE 5-MINUTE TIMER HERE!
+                    startTrackerTimer();
+                    
                     startTrackerStatusUpdates();
                 } else if (data.error && data.error.includes('already active')) {
                     trackerRunning = true;
@@ -1856,6 +1800,9 @@
                             updateTrackerStats(existing.stats);
                         }
                     }
+                    
+                    // Show timer for already running tracker (calculate remaining time)
+                    showTimer();
                     
                     showError('errorMsg', 'Tracker already active for this session. Showing current status.');
                     startTrackerStatusUpdates();
@@ -1898,6 +1845,10 @@
                     showSuccess(`Tracker stopped. Total: ${data.stats.total_dice}, Deleted: ${data.stats.deleted}`);
                     updateTrackerUI(false);
                     document.getElementById('trackerConfig').style.display = 'block';
+                    
+                    // STOP THE TIMER when tracker stops
+                    stopTrackerTimer();
+                    
                     stopTrackerStatusUpdates();
                 } else {
                     showError('errorMsg', data.error || 'Failed to stop tracker');
@@ -1943,6 +1894,28 @@
                         updateTrackerStats(data.stats);
                     }
                     
+                    // If tracker is running, sync timer with backend time_remaining
+                    if (data.time_remaining !== undefined && data.time_remaining > 0) {
+                        trackerTimeRemaining = Math.floor(data.time_remaining);
+                        showTimer();
+                        updateTimerDisplay();
+                        
+                        // Start local countdown
+                        if (!trackerTimerInterval) {
+                            trackerTimerInterval = setInterval(() => {
+                                trackerTimeRemaining--;
+                                updateTimerDisplay();
+                                
+                                if (trackerTimeRemaining <= 0) {
+                                    handleTrackerExpiry();
+                                }
+                            }, 1000);
+                        }
+                    } else {
+                        // Fallback: start fresh timer if backend doesn't provide time
+                        startTrackerTimer();
+                    }
+                    
                     startTrackerStatusUpdates();
                 } else if (!data.success && data.error && (data.error.includes('expired') || data.error.includes('invalid') || data.error.includes('authorized'))) {
                     showError('errorMsg', 'Session expired. Please login again.');
@@ -1952,6 +1925,7 @@
                     document.getElementById('trackerSwitch').checked = false;
                     updateTrackerUI(false);
                     document.getElementById('trackerConfig').style.display = 'block';
+                    hideTimer();
                 }
             } catch (error) {
                 console.error('Failed to check tracker status:', error);
@@ -1959,6 +1933,7 @@
                 document.getElementById('trackerSwitch').checked = false;
                 updateTrackerUI(false);
                 document.getElementById('trackerConfig').style.display = 'block';
+                hideTimer();
             }
         }
 
@@ -2009,14 +1984,14 @@
             
             let html = '';
             activityLogs.forEach(log => {
-                const actionClass = log.action === 'kept' ? 'kept' : 'deleted';
-                const actionIcon = log.action === 'kept' ? '✓' : '✗';
-                const actionText = log.action === 'kept' ? 'Kept' : 'Deleted';
+                let actionClass = log.action === 'kept' ? 'kept' : log.action === 'system' ? 'system' : 'deleted';
+                let actionIcon = log.action === 'kept' ? '✓' : log.action === 'system' ? '⚙️' : '✗';
+                let actionText = log.action === 'kept' ? 'Kept' : log.action === 'system' ? 'System' : 'Deleted';
                 
                 html += `
                     <div class="log-entry ${actionClass}">
                         <span class="time">${log.timestamp}</span>
-                        <span class="dice-icon">🎲 ${log.dice}</span>
+                        <span class="dice-icon">${log.action === 'system' ? '' : '🎲'} ${log.dice}</span>
                         <strong>${actionIcon} ${actionText}</strong>
                         <div class="reason">${log.reason}</div>
                     </div>
@@ -2046,7 +2021,7 @@
             }
             
             trackerStatusInterval = setInterval(async () => {
-                if (!trackerRunning || !isSessionActive) {
+                if (!trackerRunning) {
                     stopTrackerStatusUpdates();
                     return;
                 }
@@ -2066,15 +2041,30 @@
                     if (data.success && data.running && data.stats) {
                         updateTrackerStats(data.stats);
                         
+                        // Sync timer with backend if available
+                        if (data.time_remaining !== undefined) {
+                            const backendTime = Math.floor(data.time_remaining);
+                            // Only sync if difference is more than 5 seconds
+                            if (Math.abs(backendTime - trackerTimeRemaining) > 5) {
+                                trackerTimeRemaining = backendTime;
+                                updateTimerDisplay();
+                            }
+                        }
+                        
                         if (data.activity_log && data.activity_log.length > 0) {
                             updateActivityLogFromBackend(data.activity_log);
                         }
                     } else if (data.success && !data.running) {
+                        // Tracker stopped (possibly auto-stopped by backend)
                         trackerRunning = false;
                         document.getElementById('trackerSwitch').checked = false;
                         updateTrackerUI(false);
                         document.getElementById('trackerConfig').style.display = 'block';
                         stopTrackerStatusUpdates();
+                        stopTrackerTimer();
+                        
+                        // Show message if it was auto-stopped
+                        showSuccess('Tracker has been stopped.');
                     }
                 } catch (error) {
                     console.error('Failed to update tracker status:', error);
@@ -2109,8 +2099,7 @@
             }
 
             stopTrackerStatusUpdates();
-            stopSessionTimer();
-            hideTimer();
+            stopTrackerTimer();
             
             localStorage.removeItem('telegram_session');
             localStorage.removeItem('api_key');
@@ -2125,8 +2114,6 @@
             localStorage.removeItem('dm_dice');
             localStorage.removeItem('dm_max_deletions');
             localStorage.removeItem('dm_total_dice');
-            localStorage.removeItem('session_timer_start');
-            localStorage.removeItem('session_timer_duration');
 
             sessionString = '';
             sessionId = '';
@@ -2151,12 +2138,6 @@
             document.getElementById('dmTotalDice').value = '6';
             
             document.querySelectorAll('.dice-box').forEach(box => box.classList.remove('selected'));
-
-            // Re-enable all buttons
-            const buttons = document.querySelectorAll('#dashboardPage .btn');
-            buttons.forEach(btn => {
-                btn.disabled = false;
-            });
 
             showPage('loginPage');
         }
