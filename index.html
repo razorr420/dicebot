@@ -144,7 +144,7 @@
                     </button>
                 </div>
 
-                <!-- Personal DM Send Tab (Updated to use Tracker API) -->
+                <!-- Personal DM Send Tab (Using same /send-dice API as Group) -->
                 <div id="dmTab" class="tab-content">
                     <div class="section-header">
                         <span class="icon">💬</span>
@@ -152,53 +152,36 @@
                         <span class="dm-badge">Direct Message</span>
                     </div>
                     
-                    <!-- Status Display (shown when sending) -->
-                    <div class="tracker-status purple" id="dmSendStatus" style="display: none;">
-                        <div class="row"><span class="label">Status</span><span class="value" style="color: #8b5cf6;">● Sending...</span></div>
-                        <div class="row"><span class="label">User ID</span><span class="value" id="dmSendUserId">-</span></div>
-                        <div class="row"><span class="label">Bad Values</span><span class="value" id="dmSendBadValues">-</span></div>
-                        <div class="row"><span class="label">Total Dice</span><span class="value" id="dmSendTotalDice">-</span></div>
-                        <div class="row"><span class="label">Sent</span><span class="value" id="dmSendSent">0</span></div>
-                        <div class="row"><span class="label">Deleted</span><span class="value" id="dmSendDeleted">0</span></div>
-                        <div class="row"><span class="label">Kept</span><span class="value" id="dmSendKept">0</span></div>
+                    <div class="input-group">
+                        <label for="dmUserId">User ID / Username</label>
+                        <input type="text" id="dmUserId" placeholder="@username or numeric user ID" />
+                        <small>Enter the user's @username or their numeric Telegram ID</small>
                     </div>
-                    
-                    <!-- Config Form -->
-                    <div id="dmSendConfig">
-                        <div class="input-group">
-                            <label for="dmUserId">User ID / Username</label>
-                            <input type="text" id="dmUserId" placeholder="@username or numeric user ID" />
-                            <small>Enter the user's @username or their numeric Telegram ID</small>
+                    <div class="input-group">
+                        <label for="dmMaxDeletions">Deletion Limit (Optional)</label>
+                        <input type="number" id="dmMaxDeletions" placeholder="Leave empty for default" min="0" max="10" />
+                        <small>Empty = keep first, delete rest | 0 = never delete | 1+ = delete that many times</small>
+                    </div>
+                    <div class="input-group">
+                        <label for="dmTotalDice">Total Dice to Send</label>
+                        <input type="number" id="dmTotalDice" placeholder="6" min="1" max="20" value="6" />
+                        <small>Number of dice to send (default: 6)</small>
+                    </div>
+                    <div class="input-group">
+                        <label>Select Bad Dice Numbers</label>
+                        <div class="dice-grid" id="dmDiceGrid">
+                            <div class="dice-box" data-value="1" onclick="toggleDice(1, 'dm')">1</div>
+                            <div class="dice-box" data-value="2" onclick="toggleDice(2, 'dm')">2</div>
+                            <div class="dice-box" data-value="3" onclick="toggleDice(3, 'dm')">3</div>
+                            <div class="dice-box" data-value="4" onclick="toggleDice(4, 'dm')">4</div>
+                            <div class="dice-box" data-value="5" onclick="toggleDice(5, 'dm')">5</div>
+                            <div class="dice-box" data-value="6" onclick="toggleDice(6, 'dm')">6</div>
                         </div>
-                        <div class="input-group">
-                            <label for="dmMaxDeletions">Deletion Limit (Optional)</label>
-                            <input type="number" id="dmMaxDeletions" placeholder="Leave empty for default" min="0" max="10" />
-                            <small>Empty = keep first, delete rest | 0 = never delete | 1+ = delete that many times</small>
-                        </div>
-                        <div class="input-group">
-                            <label for="dmTotalDice">Total Dice to Send</label>
-                            <input type="number" id="dmTotalDice" placeholder="6" min="1" max="20" value="6" />
-                            <small>Number of dice to send (default: 6)</small>
-                        </div>
-                        <div class="input-group">
-                            <label>Select Bad Dice Numbers</label>
-                            <div class="dice-grid" id="dmDiceGrid">
-                                <div class="dice-box" data-value="1" onclick="toggleDice(1, 'dm')">1</div>
-                                <div class="dice-box" data-value="2" onclick="toggleDice(2, 'dm')">2</div>
-                                <div class="dice-box" data-value="3" onclick="toggleDice(3, 'dm')">3</div>
-                                <div class="dice-box" data-value="4" onclick="toggleDice(4, 'dm')">4</div>
-                                <div class="dice-box" data-value="5" onclick="toggleDice(5, 'dm')">5</div>
-                                <div class="dice-box" data-value="6" onclick="toggleDice(6, 'dm')">6</div>
-                            </div>
-                            <small>First occurrence kept, repeats deleted (up to limit)</small>
-                        </div>
+                        <small>First occurrence kept, repeats deleted (up to limit)</small>
                     </div>
                     
                     <button class="btn btn-purple" id="sendDmDiceBtn" onclick="sendDmDice()">
-                        <span id="sendDmDiceBtnText">💬 Start Sending Dice</span>
-                    </button>
-                    <button class="btn logout-btn" id="stopDmDiceBtn" onclick="stopDmDice()" style="display: none; margin-top: 0;">
-                        <span id="stopDmDiceBtnText">⏹️ Stop Sending</span>
+                        <span id="sendDmDiceBtnText">💬 Send Dice to DM</span>
                     </button>
                 </div>
 
