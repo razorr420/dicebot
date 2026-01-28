@@ -11,10 +11,11 @@ const MAX_LOGS = 50;
 let sessionString = '';
 let sessionId = '';
 let apiKey = '';
-let selectedDiceManual = [];
-let selectedDiceTracker = [];
-let selectedDiceDm = [];
-let selectedDiceDmTracker = [];
+// Using var so these are accessible via window[arrName] in toggleDice
+var selectedDiceManual = [];
+var selectedDiceTracker = [];
+var selectedDiceDm = [];
+var selectedDiceDmTracker = [];
 let trackerRunning = false;
 let dmTrackerRunning = false;
 let trackerTimeRemaining = TRACKER_DURATION;
