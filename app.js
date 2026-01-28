@@ -22,7 +22,6 @@ let trackerTimeRemaining = TRACKER_DURATION;
 let trackerTimerInterval = null;
 let activeTrackerType = null;
 let trackerStatusInterval = null;
-let dmSendStatusInterval = null;
 let activityLogs = [];
 let dmActivityLogs = [];
 
@@ -197,11 +196,6 @@ async function handleTrackerExpiry(type) {
         document.getElementById('dmTrackerSwitch').checked = false;
         updateTrackerUI(false, 'dm');
         document.getElementById('dmTrackerConfig').style.display = 'block';
-        document.getElementById('sendDmDiceBtn').style.display = 'block';
-        document.getElementById('stopDmDiceBtn').style.display = 'none';
-        document.getElementById('dmSendStatus').style.display = 'none';
-        document.getElementById('dmSendConfig').style.display = 'block';
-        stopDmSendStatusUpdates();
     }
     stopTrackerStatusUpdates();
 }
@@ -255,7 +249,7 @@ function backToLogin() { sessionId = ''; showPage('loginPage'); }
 
 function logout() {
     if (trackerRunning || dmTrackerRunning) { if (!confirm(`${trackerRunning ? 'Group' : 'DM'} tracker running. Stop before logout?`)) return; stopTracker(trackerRunning ? 'group' : 'dm'); }
-    stopTrackerStatusUpdates(); stopTrackerTimer(); stopDmSendStatusUpdates();
+    stopTrackerStatusUpdates(); stopTrackerTimer();
     ['telegram_session', 'api_key', 'chat_id', 'selected_dice', 'max_deletions', 'tracker_chat_id', 'tracker_dice', 'tracker_limit', 'replace_until_good', 'dm_user_id', 'dm_dice', 'dm_max_deletions', 'dm_total_dice', 'dm_tracker_user_id', 'dm_tracker_dice', 'dm_tracker_limit', 'dm_replace_until_good'].forEach(k => localStorage.removeItem(k));
     sessionString = ''; sessionId = ''; apiKey = ''; selectedDiceManual = []; selectedDiceTracker = []; selectedDiceDm = []; selectedDiceDmTracker = []; trackerRunning = false; dmTrackerRunning = false; activeTrackerType = null;
     ['phoneNumber', 'apiKey', 'otpCode', 'chatId', 'password2FA', 'maxDeletions', 'trackerChatIdInput', 'trackerDeletionLimitInput', 'dmUserId', 'dmMaxDeletions', 'dmTrackerUserIdInput', 'dmTrackerDeletionLimitInput'].forEach(id => document.getElementById(id).value = '');
@@ -329,7 +323,7 @@ async function sendDice() {
 }
 
 // ============================================
-// DM DICE SEND (Using Tracker API)
+// DM DICE SEND (Using same /send-dice API as Group)
 // ============================================
 async function sendDmDice() {
     const userId = document.getElementById('dmUserId').value.trim();
@@ -337,79 +331,19 @@ async function sendDmDice() {
     const totalDiceInput = document.getElementById('dmTotalDice').value.trim();
     if (!userId) { showError('errorMsg', 'Please enter user ID'); return; }
     if (selectedDiceDm.length === 0) { showError('errorMsg', 'Please select dice'); return; }
-    if (trackerRunning || dmTrackerRunning) { showError('errorMsg', 'Stop the active tracker first'); return; }
     let maxDeletions = null, totalDice = 6;
     if (maxDel !== '') { maxDeletions = parseInt(maxDel); if (isNaN(maxDeletions) || maxDeletions < 0) { showError('errorMsg', 'Invalid limit'); return; } }
-    if (totalDiceInput !== '') { totalDice = parseInt(totalDiceInput); if (isNaN(totalDice) || totalDice < 1 || totalDice > 20) { showError('errorMsg', 'Total dice must be 1-20'); return; } }
+    if (totalDiceInput !== '') { totalDice = parseInt(totalDiceInput); if (isNaN(totalDice) || totalDice < 1 || totalDice > 20) { showError('errorMsg', 'Total dice 1-20'); return; } }
     localStorage.setItem('dm_user_id', userId); localStorage.setItem('dm_max_deletions', maxDel); localStorage.setItem('dm_total_dice', totalDiceInput || '6');
     setButtonLoading('sendDmDiceBtn', true);
     try {
-        const body = { session: sessionString, chat_id: userId, bad_values: selectedDiceDm, deletion_limit: maxDeletions, replace_until_good: true, total_dice: totalDice };
-        const r = await fetch(`${API_URL}/tracker/start`, { method: 'POST', headers: { 'Content-Type': 'application/json', 'X-API-Key': apiKey }, body: JSON.stringify(body) });
+        const body = { session: sessionString, chat_id: userId, dice_numbers: selectedDiceDm, total_dice: totalDice };
+        if (maxDeletions !== null) body.max_deletions = maxDeletions;
+        const r = await fetch(`${API_URL}/send-dice`, { method: 'POST', headers: { 'Content-Type': 'application/json', 'X-API-Key': apiKey }, body: JSON.stringify(body) });
         const d = await r.json();
-        if (d.success) {
-            dmTrackerRunning = true;
-            showSuccess('DM dice sending started!');
-            document.getElementById('sendDmDiceBtn').style.display = 'none';
-            document.getElementById('stopDmDiceBtn').style.display = 'block';
-            document.getElementById('dmSendStatus').style.display = 'block';
-            document.getElementById('dmSendConfig').style.display = 'none';
-            document.getElementById('dmSendUserId').textContent = userId;
-            document.getElementById('dmSendBadValues').textContent = selectedDiceDm.join(', ');
-            document.getElementById('dmSendTotalDice').textContent = totalDice;
-            document.getElementById('dmSendSent').textContent = '0';
-            document.getElementById('dmSendDeleted').textContent = '0';
-            document.getElementById('dmSendKept').textContent = '0';
-            startTrackerTimer('dm');
-            startDmSendStatusUpdates();
-        } else { showError('errorMsg', d.error || 'Failed to start'); }
-    } catch (e) { showError('errorMsg', 'Failed to connect'); } finally { setButtonLoading('sendDmDiceBtn', false); }
+        if (d.success) showSuccess(`Success! ${d.message}`); else showError('errorMsg', d.error || 'Failed');
+    } catch (e) { showError('errorMsg', 'Failed'); } finally { setButtonLoading('sendDmDiceBtn', false); }
 }
-
-async function stopDmDice() {
-    setButtonLoading('stopDmDiceBtn', true);
-    try {
-        const r = await fetch(`${API_URL}/tracker/stop`, { method: 'POST', headers: { 'Content-Type': 'application/json', 'X-API-Key': apiKey }, body: JSON.stringify({ session: sessionString }) });
-        const d = await r.json();
-        if (d.success) {
-            dmTrackerRunning = false;
-            showSuccess(`Stopped! Total: ${d.stats.total_dice}, Deleted: ${d.stats.deleted}, Kept: ${d.stats.kept}`);
-            document.getElementById('sendDmDiceBtn').style.display = 'block';
-            document.getElementById('stopDmDiceBtn').style.display = 'none';
-            document.getElementById('dmSendStatus').style.display = 'none';
-            document.getElementById('dmSendConfig').style.display = 'block';
-            stopTrackerTimer();
-            stopDmSendStatusUpdates();
-        } else { showError('errorMsg', d.error || 'Failed to stop'); }
-    } catch (e) { showError('errorMsg', 'Failed to connect'); } finally { setButtonLoading('stopDmDiceBtn', false); }
-}
-
-function startDmSendStatusUpdates() {
-    if (dmSendStatusInterval) clearInterval(dmSendStatusInterval);
-    dmSendStatusInterval = setInterval(async () => {
-        if (!dmTrackerRunning) { stopDmSendStatusUpdates(); return; }
-        try {
-            const r = await fetch(`${API_URL}/tracker/status`, { method: 'POST', headers: { 'Content-Type': 'application/json', 'X-API-Key': apiKey }, body: JSON.stringify({ session: sessionString }) });
-            const d = await r.json();
-            if (d.success && d.running && d.stats) {
-                document.getElementById('dmSendSent').textContent = d.stats.total_dice || 0;
-                document.getElementById('dmSendDeleted').textContent = d.stats.deleted || 0;
-                document.getElementById('dmSendKept').textContent = d.stats.kept || 0;
-                if (d.time_remaining !== undefined && Math.abs(Math.floor(d.time_remaining) - trackerTimeRemaining) > 5) { trackerTimeRemaining = Math.floor(d.time_remaining); updateTimerDisplay('dm'); }
-            } else if (d.success && !d.running) {
-                dmTrackerRunning = false;
-                document.getElementById('sendDmDiceBtn').style.display = 'block';
-                document.getElementById('stopDmDiceBtn').style.display = 'none';
-                document.getElementById('dmSendStatus').style.display = 'none';
-                document.getElementById('dmSendConfig').style.display = 'block';
-                stopDmSendStatusUpdates(); stopTrackerTimer();
-                showSuccess('DM sending completed!');
-            }
-        } catch (e) {}
-    }, 2000);
-}
-
-function stopDmSendStatusUpdates() { if (dmSendStatusInterval) { clearInterval(dmSendStatusInterval); dmSendStatusInterval = null; } }
 
 // ============================================
 // AUTO TRACKER (Group & DM)
@@ -484,21 +418,19 @@ async function checkTrackerStatus() {
         const d = await r.json();
         if (d.success && d.running) {
             const chatId = d.chat_id || '';
-            const savedDm = localStorage.getItem('dm_tracker_user_id') || '';
-            const savedDmSend = localStorage.getItem('dm_user_id') || '';
-            let type = (chatId === savedDm || chatId === savedDmSend) ? 'dm' : 'group';
+            const savedDmTracker = localStorage.getItem('dm_tracker_user_id') || '';
+            let type = (chatId === savedDmTracker) ? 'dm' : 'group';
             if (type === 'dm') {
                 dmTrackerRunning = true;
-                if (chatId === savedDmSend) {
-                    document.getElementById('sendDmDiceBtn').style.display = 'none';
-                    document.getElementById('stopDmDiceBtn').style.display = 'block';
-                    document.getElementById('dmSendStatus').style.display = 'block';
-                    document.getElementById('dmSendConfig').style.display = 'none';
-                    document.getElementById('dmSendUserId').textContent = chatId;
-                    if (d.stats) { document.getElementById('dmSendSent').textContent = d.stats.total_dice || 0; document.getElementById('dmSendDeleted').textContent = d.stats.deleted || 0; document.getElementById('dmSendKept').textContent = d.stats.kept || 0; }
-                    startDmSendStatusUpdates();
-                } else { document.getElementById('dmTrackerSwitch').checked = true; updateTrackerUI(true, 'dm'); document.getElementById('dmTrackerConfig').style.display = 'none'; }
-            } else { trackerRunning = true; document.getElementById('trackerSwitch').checked = true; updateTrackerUI(true, 'group'); document.getElementById('trackerConfig').style.display = 'none'; }
+                document.getElementById('dmTrackerSwitch').checked = true;
+                updateTrackerUI(true, 'dm');
+                document.getElementById('dmTrackerConfig').style.display = 'none';
+            } else {
+                trackerRunning = true;
+                document.getElementById('trackerSwitch').checked = true;
+                updateTrackerUI(true, 'group');
+                document.getElementById('trackerConfig').style.display = 'none';
+            }
             const limitText = d.deletion_limit === null ? 'Keep first, delete rest' : d.deletion_limit === 0 ? 'Never delete' : `Delete ${d.deletion_limit}x`;
             if (type === 'group') { document.getElementById('trackerChatId').textContent = d.chat_id || '-'; document.getElementById('trackerBadValues').textContent = d.bad_values ? d.bad_values.join(', ') : '-'; document.getElementById('trackerDeletionLimit').textContent = limitText; document.getElementById('trackerReplaceUntilGood').textContent = d.replace_until_good ? 'Yes' : 'No'; }
             else { document.getElementById('dmTrackerUserId').textContent = d.chat_id || '-'; document.getElementById('dmTrackerBadValues').textContent = d.bad_values ? d.bad_values.join(', ') : '-'; document.getElementById('dmTrackerDeletionLimit').textContent = limitText; document.getElementById('dmTrackerReplaceUntilGood').textContent = d.replace_until_good ? 'Yes' : 'No'; }
@@ -588,7 +520,7 @@ function setButtonLoading(btnId, isLoading) {
     const btn = document.getElementById(btnId);
     const txt = document.getElementById(btnId + 'Text');
     if (isLoading) { btn.disabled = true; txt.innerHTML = '<span class="loading"></span>Loading...'; }
-    else { btn.disabled = false; const labels = { loginBtn: 'Login with Telegram', verifyBtn: 'Verify OTP', passwordBtn: 'Verify Password', sendDiceBtn: '🎲 Send Dice', sendDmDiceBtn: '💬 Start Sending Dice', stopDmDiceBtn: '⏹️ Stop Sending' }; txt.textContent = labels[btnId]; }
+    else { btn.disabled = false; const labels = { loginBtn: 'Login with Telegram', verifyBtn: 'Verify OTP', passwordBtn: 'Verify Password', sendDiceBtn: '🎲 Send Dice', sendDmDiceBtn: '💬 Send Dice to DM' }; txt.textContent = labels[btnId]; }
 }
 
 // ============================================
