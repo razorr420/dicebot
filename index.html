@@ -1,846 +1,35 @@
 <!DOCTYPE html>
 <html lang="en">
-
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Telegram Dice Sender</title>
-    <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
-
-        body {
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            min-height: 100vh;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            padding: 20px;
-        }
-
-        .container {
-            background: white;
-            border-radius: 20px;
-            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
-            width: 100%;
-            max-width: 500px;
-            overflow: hidden;
-            animation: slideUp 0.5s ease;
-        }
-
-        @keyframes slideUp {
-            from {
-                opacity: 0;
-                transform: translateY(30px);
-            }
-
-            to {
-                opacity: 1;
-                transform: translateY(0);
-            }
-        }
-
-        .header {
-            background: linear-gradient(135deg, #0088cc, #0088cc);
-            padding: 30px 30px 20px;
-            text-align: center;
-            color: white;
-        }
-
-        .header h1 {
-            font-size: 28px;
-            margin-bottom: 10px;
-            font-weight: 600;
-        }
-
-        .header p {
-            opacity: 0.9;
-            font-size: 14px;
-        }
-
-        /* Global Timer Styles */
-        .global-timer {
-            background: linear-gradient(135deg, #1a1a2e, #16213e);
-            padding: 15px 20px;
-            display: none;
-            align-items: center;
-            justify-content: space-between;
-            border-bottom: 1px solid rgba(255,255,255,0.1);
-        }
-
-        .global-timer.show {
-            display: flex;
-        }
-
-        .timer-left {
-            display: flex;
-            align-items: center;
-            gap: 10px;
-        }
-
-        .timer-icon {
-            font-size: 24px;
-            animation: pulse 1s infinite;
-        }
-
-        @keyframes pulse {
-            0%, 100% { opacity: 1; }
-            50% { opacity: 0.5; }
-        }
-
-        .timer-label {
-            font-size: 12px;
-            color: #888;
-            text-transform: uppercase;
-            letter-spacing: 1px;
-        }
-
-        .timer-display {
-            font-size: 28px;
-            font-weight: bold;
-            font-family: 'Courier New', monospace;
-            color: #00ff88;
-            text-shadow: 0 0 10px rgba(0, 255, 136, 0.5);
-        }
-
-        .timer-display.warning {
-            color: #ffaa00;
-            text-shadow: 0 0 10px rgba(255, 170, 0, 0.5);
-            animation: blink 0.5s infinite;
-        }
-
-        .timer-display.critical {
-            color: #ff4444;
-            text-shadow: 0 0 10px rgba(255, 68, 68, 0.5);
-            animation: blink 0.3s infinite;
-        }
-
-        @keyframes blink {
-            0%, 100% { opacity: 1; }
-            50% { opacity: 0.6; }
-        }
-
-        .timer-status {
-            display: flex;
-            flex-direction: column;
-            align-items: flex-end;
-            gap: 4px;
-        }
-
-        .timer-status-badge {
-            padding: 4px 10px;
-            border-radius: 12px;
-            font-size: 11px;
-            font-weight: 600;
-            text-transform: uppercase;
-        }
-
-        .timer-status-badge.active {
-            background: rgba(0, 255, 136, 0.2);
-            color: #00ff88;
-            border: 1px solid rgba(0, 255, 136, 0.3);
-        }
-
-        .timer-status-badge.inactive {
-            background: rgba(136, 136, 136, 0.2);
-            color: #888;
-            border: 1px solid rgba(136, 136, 136, 0.3);
-        }
-
-        .timer-status-badge.expired {
-            background: rgba(255, 68, 68, 0.2);
-            color: #ff4444;
-            border: 1px solid rgba(255, 68, 68, 0.3);
-        }
-
-        .timer-progress {
-            width: 100%;
-            height: 4px;
-            background: rgba(255,255,255,0.1);
-            border-radius: 2px;
-            overflow: hidden;
-            display: none;
-        }
-
-        .timer-progress.show {
-            display: block;
-        }
-
-        .timer-progress-bar {
-            height: 100%;
-            background: linear-gradient(90deg, #00ff88, #00cc6a);
-            border-radius: 2px;
-            transition: width 1s linear;
-        }
-
-        .timer-progress-bar.warning {
-            background: linear-gradient(90deg, #ffaa00, #ff8800);
-        }
-
-        .timer-progress-bar.critical {
-            background: linear-gradient(90deg, #ff4444, #cc0000);
-        }
-
-        .content {
-            padding: 40px 30px;
-        }
-
-        .page {
-            display: none;
-        }
-
-        .page.active {
-            display: block;
-        }
-
-        .input-group {
-            margin-bottom: 25px;
-        }
-
-        .input-group label {
-            display: block;
-            margin-bottom: 8px;
-            color: #333;
-            font-weight: 500;
-            font-size: 14px;
-        }
-
-        .input-group input {
-            width: 100%;
-            padding: 14px 16px;
-            border: 2px solid #e1e8ed;
-            border-radius: 12px;
-            font-size: 16px;
-            transition: all 0.3s ease;
-            outline: none;
-        }
-
-        .input-group input:focus {
-            border-color: #0088cc;
-            box-shadow: 0 0 0 3px rgba(0, 136, 204, 0.1);
-        }
-
-        .input-group small {
-            display: block;
-            margin-top: 6px;
-            color: #666;
-            font-size: 12px;
-            line-height: 1.4;
-        }
-
-        .btn {
-            width: 100%;
-            padding: 16px;
-            background: linear-gradient(135deg, #0088cc, #006699);
-            color: white;
-            border: none;
-            border-radius: 12px;
-            font-size: 16px;
-            font-weight: 600;
-            cursor: pointer;
-            transition: all 0.3s ease;
-            box-shadow: 0 4px 15px rgba(0, 136, 204, 0.3);
-        }
-
-        .btn:hover:not(:disabled) {
-            transform: translateY(-2px);
-            box-shadow: 0 6px 20px rgba(0, 136, 204, 0.4);
-        }
-
-        .btn:active {
-            transform: translateY(0);
-        }
-
-        .btn:disabled {
-            background: #ccc;
-            cursor: not-allowed;
-            transform: none;
-            opacity: 0.6;
-        }
-
-        .btn-success {
-            background: linear-gradient(135deg, #10b981, #059669);
-            box-shadow: 0 4px 15px rgba(16, 185, 129, 0.3);
-        }
-
-        .btn-success:hover:not(:disabled) {
-            box-shadow: 0 6px 20px rgba(16, 185, 129, 0.4);
-        }
-
-        .btn-danger {
-            background: linear-gradient(135deg, #ef4444, #dc2626);
-            box-shadow: 0 4px 15px rgba(239, 68, 68, 0.3);
-        }
-
-        .btn-danger:hover:not(:disabled) {
-            box-shadow: 0 6px 20px rgba(239, 68, 68, 0.4);
-        }
-
-        .btn-purple {
-            background: linear-gradient(135deg, #8b5cf6, #7c3aed);
-            box-shadow: 0 4px 15px rgba(139, 92, 246, 0.3);
-        }
-
-        .btn-purple:hover:not(:disabled) {
-            box-shadow: 0 6px 20px rgba(139, 92, 246, 0.4);
-        }
-
-        .dice-grid {
-            display: grid;
-            grid-template-columns: repeat(3, 1fr);
-            gap: 12px;
-            margin-bottom: 30px;
-        }
-
-        .dice-box {
-            aspect-ratio: 1;
-            border: 2px solid #e1e8ed;
-            border-radius: 16px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 32px;
-            font-weight: bold;
-            color: #999;
-            cursor: pointer;
-            transition: all 0.3s ease;
-            background: #f8f9fa;
-        }
-
-        .dice-box:hover {
-            border-color: #0088cc;
-            transform: scale(1.05);
-        }
-
-        .dice-box.selected {
-            background: linear-gradient(135deg, #0088cc, #006699);
-            color: white;
-            border-color: #0088cc;
-            box-shadow: 0 4px 15px rgba(0, 136, 204, 0.3);
-        }
-
-        .logout-btn {
-            background: linear-gradient(135deg, #ff6b6b, #ee5a6f);
-            margin-top: 15px;
-            box-shadow: 0 4px 15px rgba(255, 107, 107, 0.3);
-        }
-
-        .success-msg,
-        .error-msg,
-        .info-msg {
-            padding: 12px 16px;
-            border-radius: 10px;
-            margin-bottom: 20px;
-            font-size: 14px;
-            display: none;
-        }
-
-        .success-msg {
-            background: #d4edda;
-            color: #155724;
-            border: 1px solid #c3e6cb;
-        }
-
-        .error-msg {
-            background: #f8d7da;
-            color: #721c24;
-            border: 1px solid #f5c6cb;
-        }
-
-        .info-msg {
-            background: #d1ecf1;
-            color: #0c5460;
-            border: 1px solid #bee5eb;
-        }
-
-        .success-msg.show,
-        .error-msg.show,
-        .info-msg.show {
-            display: block;
-            animation: slideDown 0.3s ease;
-        }
-
-        @keyframes slideDown {
-            from {
-                opacity: 0;
-                transform: translateY(-10px);
-            }
-
-            to {
-                opacity: 1;
-                transform: translateY(0);
-            }
-        }
-
-        .info-text {
-            text-align: center;
-            color: #666;
-            font-size: 13px;
-            margin-top: 20px;
-        }
-
-        .dashboard-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 25px;
-            padding-bottom: 15px;
-            border-bottom: 2px solid #f0f0f0;
-        }
-
-        .dashboard-header h2 {
-            color: #333;
-            font-size: 22px;
-        }
-
-        .status-badge {
-            background: #d4edda;
-            color: #155724;
-            padding: 6px 14px;
-            border-radius: 20px;
-            font-size: 12px;
-            font-weight: 600;
-        }
-
-        .status-badge.inactive {
-            background: #f8d7da;
-            color: #721c24;
-        }
-
-        .loading {
-            display: inline-block;
-            width: 16px;
-            height: 16px;
-            border: 2px solid #ffffff;
-            border-radius: 50%;
-            border-top-color: transparent;
-            animation: spin 0.8s linear infinite;
-            margin-right: 8px;
-            vertical-align: middle;
-        }
-
-        @keyframes spin {
-            to {
-                transform: rotate(360deg);
-            }
-        }
-
-        .tab-container {
-            display: flex;
-            gap: 5px;
-            margin-bottom: 25px;
-            border-bottom: 2px solid #f0f0f0;
-            flex-wrap: wrap;
-        }
-
-        .tab {
-            flex: 1;
-            min-width: 80px;
-            padding: 12px 8px;
-            background: transparent;
-            border: none;
-            border-bottom: 3px solid transparent;
-            cursor: pointer;
-            font-size: 13px;
-            font-weight: 600;
-            color: #666;
-            transition: all 0.3s ease;
-        }
-
-        .tab:hover {
-            color: #0088cc;
-        }
-
-        .tab.active {
-            color: #0088cc;
-            border-bottom-color: #0088cc;
-        }
-
-        .tab-content {
-            display: none;
-        }
-
-        .tab-content.active {
-            display: block;
-        }
-
-        .stats-grid {
-            display: grid;
-            grid-template-columns: repeat(2, 1fr);
-            gap: 12px;
-            margin-bottom: 20px;
-        }
-
-        .stat-box {
-            background: #f8f9fa;
-            padding: 15px;
-            border-radius: 12px;
-            text-align: center;
-        }
-
-        .stat-box .label {
-            font-size: 12px;
-            color: #666;
-            margin-bottom: 5px;
-        }
-
-        .stat-box .value {
-            font-size: 24px;
-            font-weight: bold;
-            color: #333;
-        }
-
-        .tracker-status {
-            background: #f8f9fa;
-            padding: 15px;
-            border-radius: 12px;
-            margin-bottom: 20px;
-        }
-
-        .tracker-status .row {
-            display: flex;
-            justify-content: space-between;
-            padding: 8px 0;
-            border-bottom: 1px solid #e1e8ed;
-        }
-
-        .tracker-status .row:last-child {
-            border-bottom: none;
-        }
-
-        .tracker-status .label {
-            font-size: 13px;
-            color: #666;
-        }
-
-        .tracker-status .value {
-            font-size: 13px;
-            font-weight: 600;
-            color: #333;
-        }
-
-        .switch-container {
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            margin-bottom: 25px;
-            padding: 15px;
-            background: #f8f9fa;
-            border-radius: 12px;
-        }
-
-        .switch-label {
-            font-weight: 600;
-            color: #333;
-        }
-
-        .switch {
-            position: relative;
-            display: inline-block;
-            width: 54px;
-            height: 28px;
-        }
-
-        .switch input {
-            opacity: 0;
-            width: 0;
-            height: 0;
-        }
-
-        .slider {
-            position: absolute;
-            cursor: pointer;
-            top: 0;
-            left: 0;
-            right: 0;
-            bottom: 0;
-            background-color: #ccc;
-            transition: 0.4s;
-            border-radius: 28px;
-        }
-
-        .slider:before {
-            position: absolute;
-            content: "";
-            height: 20px;
-            width: 20px;
-            left: 4px;
-            bottom: 4px;
-            background-color: white;
-            transition: 0.4s;
-            border-radius: 50%;
-        }
-
-        input:checked + .slider {
-            background-color: #10b981;
-        }
-
-        input:checked + .slider:before {
-            transform: translateX(26px);
-        }
-
-        input:disabled + .slider {
-            opacity: 0.5;
-            cursor: not-allowed;
-        }
-
-        #activityLog {
-            background: #f8f9fa;
-            border: 1px solid #e1e8ed;
-            border-radius: 12px;
-            padding: 15px;
-            max-height: 300px;
-            overflow-y: auto;
-            font-family: 'Courier New', monospace;
-            font-size: 13px;
-            line-height: 1.6;
-        }
-
-        #activityLog:empty::before {
-            content: 'No activity yet...';
-            color: #999;
-            font-style: italic;
-        }
-
-        .log-entry {
-            padding: 8px 10px;
-            margin-bottom: 8px;
-            border-radius: 8px;
-            border-left: 3px solid #ccc;
-            background: white;
-            animation: slideIn 0.3s ease;
-        }
-
-        @keyframes slideIn {
-            from {
-                opacity: 0;
-                transform: translateX(-10px);
-            }
-            to {
-                opacity: 1;
-                transform: translateX(0);
-            }
-        }
-
-        .log-entry.kept {
-            border-left-color: #10b981;
-            background: #ecfdf5;
-        }
-
-        .log-entry.deleted {
-            border-left-color: #ef4444;
-            background: #fef2f2;
-        }
-
-        .log-entry.system {
-            border-left-color: #f59e0b;
-            background: #fffbeb;
-        }
-
-        .log-entry .time {
-            color: #666;
-            font-size: 11px;
-            margin-right: 8px;
-        }
-
-        .log-entry .dice-icon {
-            font-weight: bold;
-            margin: 0 5px;
-        }
-
-        .log-entry .reason {
-            color: #666;
-            font-style: italic;
-            font-size: 12px;
-            margin-top: 3px;
-        }
-
-        .log-clear-btn {
-            background: transparent;
-            color: #666;
-            border: 1px solid #e1e8ed;
-            padding: 6px 12px;
-            border-radius: 8px;
-            font-size: 12px;
-            cursor: pointer;
-            margin-top: 10px;
-            transition: all 0.3s ease;
-        }
-
-        .log-clear-btn:hover {
-            background: #f8f9fa;
-            color: #333;
-        }
-
-        .key-icon {
-            position: absolute;
-            right: 16px;
-            top: 50%;
-            transform: translateY(-50%);
-            color: #999;
-            font-size: 18px;
-        }
-
-        .input-with-icon {
-            position: relative;
-        }
-
-        .input-with-icon input {
-            padding-right: 45px;
-        }
-
-        /* Section header style */
-        .section-header {
-            display: flex;
-            align-items: center;
-            gap: 10px;
-            margin-bottom: 20px;
-            padding-bottom: 10px;
-            border-bottom: 2px solid #f0f0f0;
-        }
-
-        .section-header .icon {
-            font-size: 24px;
-        }
-
-        .section-header h3 {
-            color: #333;
-            font-size: 18px;
-            font-weight: 600;
-        }
-
-        .section-header small {
-            color: #666;
-            font-size: 12px;
-            margin-left: auto;
-        }
-
-        /* DM specific styles */
-        .dm-badge {
-            background: linear-gradient(135deg, #8b5cf6, #7c3aed);
-            color: white;
-            padding: 4px 10px;
-            border-radius: 12px;
-            font-size: 11px;
-            font-weight: 600;
-        }
-
-        /* Session expired overlay */
-        .session-expired-overlay {
-            display: none;
-            position: fixed;
-            top: 0;
-            left: 0;
-            right: 0;
-            bottom: 0;
-            background: rgba(0, 0, 0, 0.8);
-            z-index: 1000;
-            align-items: center;
-            justify-content: center;
-        }
-
-        .session-expired-overlay.show {
-            display: flex;
-        }
-
-        .session-expired-box {
-            background: white;
-            padding: 40px;
-            border-radius: 20px;
-            text-align: center;
-            max-width: 400px;
-            animation: bounceIn 0.5s ease;
-        }
-
-        @keyframes bounceIn {
-            0% { transform: scale(0.5); opacity: 0; }
-            70% { transform: scale(1.05); }
-            100% { transform: scale(1); opacity: 1; }
-        }
-
-        .session-expired-box .icon {
-            font-size: 64px;
-            margin-bottom: 20px;
-        }
-
-        .session-expired-box h2 {
-            color: #333;
-            margin-bottom: 10px;
-        }
-
-        .session-expired-box p {
-            color: #666;
-            margin-bottom: 20px;
-        }
-
-        /* Timer info box in tracker tab */
-        .timer-info-box {
-            background: linear-gradient(135deg, #1a1a2e, #16213e);
-            padding: 15px;
-            border-radius: 12px;
-            margin-bottom: 20px;
-            color: white;
-            display: none;
-        }
-
-        .timer-info-box.show {
-            display: block;
-        }
-
-        .timer-info-box .timer-row {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-        }
-
-        .timer-info-box .timer-label {
-            font-size: 12px;
-            color: #888;
-        }
-
-        .timer-info-box .timer-value {
-            font-size: 24px;
-            font-weight: bold;
-            font-family: 'Courier New', monospace;
-            color: #00ff88;
-        }
-
-        .timer-info-box .timer-note {
-            font-size: 11px;
-            color: #666;
-            margin-top: 8px;
-            text-align: center;
-        }
-    </style>
+    <link rel="stylesheet" href="styles.css">
 </head>
-
 <body>
     <!-- Session Expired Overlay -->
     <div class="session-expired-overlay" id="sessionExpiredOverlay">
         <div class="session-expired-box">
             <div class="icon">⏰</div>
             <h2>Tracker Auto-Stopped</h2>
-            <p>Your tracker session has ended after 5 minutes. The tracker has been stopped automatically.</p>
+            <p id="expiredOverlayText">Your tracker session has ended after 5 minutes.</p>
             <button class="btn" onclick="closeExpiredOverlay()">OK, Got it</button>
         </div>
     </div>
 
     <div class="container">
+        <!-- Header -->
         <div class="header">
             <h1>🎲 Telegram Dice</h1>
             <p>Send dice & auto tracker</p>
         </div>
 
-        <!-- Global Timer (visible only when tracker is running) -->
+        <!-- Global Timer -->
         <div class="global-timer" id="globalTimer">
             <div class="timer-left">
                 <span class="timer-icon" id="timerIcon">⏱️</span>
                 <div>
-                    <div class="timer-label">Tracker Auto-Stop In</div>
+                    <div class="timer-label" id="timerLabel">Tracker Auto-Stop In</div>
                     <div class="timer-display" id="timerDisplay">05:00</div>
                 </div>
             </div>
@@ -856,8 +45,6 @@
             <!-- Login Page -->
             <div id="loginPage" class="page active">
                 <div class="error-msg" id="loginError"></div>
-                
-                <!-- API Key Input -->
                 <div class="input-group">
                     <label for="apiKey">API Key</label>
                     <div class="input-with-icon">
@@ -866,7 +53,6 @@
                     </div>
                     <small>Enter the API key provided by the administrator</small>
                 </div>
-                
                 <div class="input-group">
                     <label for="phoneNumber">Phone Number</label>
                     <input type="tel" id="phoneNumber" placeholder="+911234567890" />
@@ -917,8 +103,9 @@
                 <!-- Tabs -->
                 <div class="tab-container">
                     <button class="tab active" onclick="switchTab('manualTab')">Group Send</button>
-                    <button class="tab" onclick="switchTab('dmTab')">Personal DM</button>
-                    <button class="tab" onclick="switchTab('trackerTab')">Auto Tracker</button>
+                    <button class="tab" onclick="switchTab('dmTab')">DM Send</button>
+                    <button class="tab" onclick="switchTab('trackerTab')">Group Track</button>
+                    <button class="tab" onclick="switchTab('dmTrackerTab')">DM Track</button>
                 </div>
 
                 <div class="success-msg" id="successMsg"></div>
@@ -930,19 +117,16 @@
                         <span class="icon">👥</span>
                         <h3>Send to Group/Channel</h3>
                     </div>
-
                     <div class="input-group">
                         <label for="chatId">Chat ID</label>
                         <input type="text" id="chatId" placeholder="Enter chat ID or username" />
                         <small>Can be username (@username) or numeric ID</small>
                     </div>
-
                     <div class="input-group">
                         <label for="maxDeletions">Deletion Limit (Optional)</label>
                         <input type="number" id="maxDeletions" placeholder="Leave empty for default" min="0" max="10" />
                         <small>Empty = keep first, delete rest | 0 = never delete | 1+ = delete that many times</small>
                     </div>
-
                     <div class="input-group">
                         <label>Select Bad Dice Numbers</label>
                         <div class="dice-grid" id="manualDiceGrid">
@@ -955,59 +139,71 @@
                         </div>
                         <small>First occurrence kept, repeats deleted (up to limit)</small>
                     </div>
-
                     <button class="btn" id="sendDiceBtn" onclick="sendDice()">
                         <span id="sendDiceBtnText">🎲 Send Dice</span>
                     </button>
                 </div>
 
-                <!-- Personal DM Tab -->
+                <!-- Personal DM Send Tab (Updated to use Tracker API) -->
                 <div id="dmTab" class="tab-content">
                     <div class="section-header">
                         <span class="icon">💬</span>
                         <h3>Send to Personal DM</h3>
                         <span class="dm-badge">Direct Message</span>
                     </div>
-
-                    <div class="input-group">
-                        <label for="dmUserId">User ID / Username</label>
-                        <input type="text" id="dmUserId" placeholder="@username or numeric user ID" />
-                        <small>Enter the user's @username or their numeric Telegram ID</small>
+                    
+                    <!-- Status Display (shown when sending) -->
+                    <div class="tracker-status purple" id="dmSendStatus" style="display: none;">
+                        <div class="row"><span class="label">Status</span><span class="value" style="color: #8b5cf6;">● Sending...</span></div>
+                        <div class="row"><span class="label">User ID</span><span class="value" id="dmSendUserId">-</span></div>
+                        <div class="row"><span class="label">Bad Values</span><span class="value" id="dmSendBadValues">-</span></div>
+                        <div class="row"><span class="label">Total Dice</span><span class="value" id="dmSendTotalDice">-</span></div>
+                        <div class="row"><span class="label">Sent</span><span class="value" id="dmSendSent">0</span></div>
+                        <div class="row"><span class="label">Deleted</span><span class="value" id="dmSendDeleted">0</span></div>
+                        <div class="row"><span class="label">Kept</span><span class="value" id="dmSendKept">0</span></div>
                     </div>
-
-                    <div class="input-group">
-                        <label for="dmMaxDeletions">Deletion Limit (Optional)</label>
-                        <input type="number" id="dmMaxDeletions" placeholder="Leave empty for default" min="0" max="10" />
-                        <small>Empty = keep first, delete rest | 0 = never delete | 1+ = delete that many times</small>
-                    </div>
-
-                    <div class="input-group">
-                        <label for="dmTotalDice">Total Dice to Send</label>
-                        <input type="number" id="dmTotalDice" placeholder="6" min="1" max="20" value="6" />
-                        <small>Number of dice to send (default: 6)</small>
-                    </div>
-
-                    <div class="input-group">
-                        <label>Select Bad Dice Numbers</label>
-                        <div class="dice-grid" id="dmDiceGrid">
-                            <div class="dice-box" data-value="1" onclick="toggleDice(1, 'dm')">1</div>
-                            <div class="dice-box" data-value="2" onclick="toggleDice(2, 'dm')">2</div>
-                            <div class="dice-box" data-value="3" onclick="toggleDice(3, 'dm')">3</div>
-                            <div class="dice-box" data-value="4" onclick="toggleDice(4, 'dm')">4</div>
-                            <div class="dice-box" data-value="5" onclick="toggleDice(5, 'dm')">5</div>
-                            <div class="dice-box" data-value="6" onclick="toggleDice(6, 'dm')">6</div>
+                    
+                    <!-- Config Form -->
+                    <div id="dmSendConfig">
+                        <div class="input-group">
+                            <label for="dmUserId">User ID / Username</label>
+                            <input type="text" id="dmUserId" placeholder="@username or numeric user ID" />
+                            <small>Enter the user's @username or their numeric Telegram ID</small>
                         </div>
-                        <small>First occurrence kept, repeats deleted (up to limit)</small>
+                        <div class="input-group">
+                            <label for="dmMaxDeletions">Deletion Limit (Optional)</label>
+                            <input type="number" id="dmMaxDeletions" placeholder="Leave empty for default" min="0" max="10" />
+                            <small>Empty = keep first, delete rest | 0 = never delete | 1+ = delete that many times</small>
+                        </div>
+                        <div class="input-group">
+                            <label for="dmTotalDice">Total Dice to Send</label>
+                            <input type="number" id="dmTotalDice" placeholder="6" min="1" max="20" value="6" />
+                            <small>Number of dice to send (default: 6)</small>
+                        </div>
+                        <div class="input-group">
+                            <label>Select Bad Dice Numbers</label>
+                            <div class="dice-grid" id="dmDiceGrid">
+                                <div class="dice-box" data-value="1" onclick="toggleDice(1, 'dm')">1</div>
+                                <div class="dice-box" data-value="2" onclick="toggleDice(2, 'dm')">2</div>
+                                <div class="dice-box" data-value="3" onclick="toggleDice(3, 'dm')">3</div>
+                                <div class="dice-box" data-value="4" onclick="toggleDice(4, 'dm')">4</div>
+                                <div class="dice-box" data-value="5" onclick="toggleDice(5, 'dm')">5</div>
+                                <div class="dice-box" data-value="6" onclick="toggleDice(6, 'dm')">6</div>
+                            </div>
+                            <small>First occurrence kept, repeats deleted (up to limit)</small>
+                        </div>
                     </div>
-
+                    
                     <button class="btn btn-purple" id="sendDmDiceBtn" onclick="sendDmDice()">
-                        <span id="sendDmDiceBtnText">💬 Send Dice to DM</span>
+                        <span id="sendDmDiceBtnText">💬 Start Sending Dice</span>
+                    </button>
+                    <button class="btn logout-btn" id="stopDmDiceBtn" onclick="stopDmDice()" style="display: none; margin-top: 0;">
+                        <span id="stopDmDiceBtnText">⏹️ Stop Sending</span>
                     </button>
                 </div>
 
-                <!-- Auto Tracker Tab -->
+                <!-- Group Auto Tracker Tab -->
                 <div id="trackerTab" class="tab-content">
-                    <!-- Timer Info Box (shown when tracker is running) -->
                     <div class="timer-info-box" id="trackerTimerInfo">
                         <div class="timer-row">
                             <span class="timer-label">⏱️ Auto-Stop In</span>
@@ -1015,95 +211,49 @@
                         </div>
                         <div class="timer-note">Tracker will automatically stop after 5 minutes</div>
                     </div>
-
-                    <!-- Tracker Toggle -->
                     <div class="switch-container">
-                        <span class="switch-label">Auto Tracker</span>
+                        <span class="switch-label">Group Auto Tracker</span>
                         <label class="switch">
-                            <input type="checkbox" id="trackerSwitch" onchange="toggleTracker()">
+                            <input type="checkbox" id="trackerSwitch" onchange="toggleTracker('group')">
                             <span class="slider"></span>
                         </label>
                     </div>
-
-                    <!-- Tracker Status -->
                     <div class="tracker-status" id="trackerStatusBox" style="display: none;">
-                        <div class="row">
-                            <span class="label">Status</span>
-                            <span class="value" id="trackerStatusText">Inactive</span>
-                        </div>
-                        <div class="row">
-                            <span class="label">Chat ID</span>
-                            <span class="value" id="trackerChatId">-</span>
-                        </div>
-                        <div class="row">
-                            <span class="label">Bad Values</span>
-                            <span class="value" id="trackerBadValues">-</span>
-                        </div>
-                        <div class="row">
-                            <span class="label">Deletion Limit</span>
-                            <span class="value" id="trackerDeletionLimit">-</span>
-                        </div>
-                        <div class="row">
-                            <span class="label">Replace Until Good</span>
-                            <span class="value" id="trackerReplaceUntilGood">-</span>
-                        </div>
+                        <div class="row"><span class="label">Status</span><span class="value" id="trackerStatusText">Inactive</span></div>
+                        <div class="row"><span class="label">Chat ID</span><span class="value" id="trackerChatId">-</span></div>
+                        <div class="row"><span class="label">Bad Values</span><span class="value" id="trackerBadValues">-</span></div>
+                        <div class="row"><span class="label">Deletion Limit</span><span class="value" id="trackerDeletionLimit">-</span></div>
+                        <div class="row"><span class="label">Replace Until Good</span><span class="value" id="trackerReplaceUntilGood">-</span></div>
                     </div>
-
-                    <!-- Stats -->
                     <div class="stats-grid" id="trackerStats" style="display: none;">
-                        <div class="stat-box">
-                            <div class="label">Total Dice</div>
-                            <div class="value" id="statTotalDice">0</div>
-                        </div>
-                        <div class="stat-box">
-                            <div class="label">Deleted</div>
-                            <div class="value" id="statDeleted">0</div>
-                        </div>
-                        <div class="stat-box">
-                            <div class="label">Kept</div>
-                            <div class="value" id="statKept">0</div>
-                        </div>
-                        <div class="stat-box">
-                            <div class="label">Duration</div>
-                            <div class="value" id="statDuration">0s</div>
-                        </div>
+                        <div class="stat-box"><div class="label">Total Dice</div><div class="value" id="statTotalDice">0</div></div>
+                        <div class="stat-box"><div class="label">Deleted</div><div class="value" id="statDeleted">0</div></div>
+                        <div class="stat-box"><div class="label">Kept</div><div class="value" id="statKept">0</div></div>
+                        <div class="stat-box"><div class="label">Duration</div><div class="value" id="statDuration">0s</div></div>
                     </div>
-
-                    <!-- Activity Log -->
                     <div id="activityLogContainer" style="display: none;">
                         <div class="input-group">
                             <label>Activity Log</label>
-                            <div id="activityLog"></div>
+                            <div id="activityLog" class="activity-log"></div>
                         </div>
                     </div>
-
-                    <!-- Tracker Configuration -->
                     <div id="trackerConfig">
                         <div class="input-group">
-                            <label for="trackerChatId">Chat ID</label>
+                            <label for="trackerChatIdInput">Chat ID</label>
                             <input type="text" id="trackerChatIdInput" placeholder="Enter chat ID or username" />
                         </div>
-
                         <div class="input-group">
-                            <label for="trackerDeletionLimit">Deletion Limit</label>
+                            <label for="trackerDeletionLimitInput">Deletion Limit</label>
                             <input type="number" id="trackerDeletionLimitInput" placeholder="Leave empty for default" min="0" max="10" />
                             <small>Empty = keep first, delete rest | 0 = never delete</small>
                         </div>
-
-                        <!-- Replace Until Good Switch -->
                         <div class="switch-container">
                             <div>
                                 <span class="switch-label">Replace Until Good Value</span>
-                                <small style="display: block; color: #666; font-weight: normal; margin-top: 4px;">
-                                    Keep replacing deleted dice until a non-bad value appears
-                                </small>
+                                <small style="display: block; color: #666; font-weight: normal; margin-top: 4px;">Keep replacing deleted dice until a non-bad value appears</small>
                             </div>
-                            <label class="switch">
-                                <input type="checkbox" id="replaceUntilGoodSwitch">
-                                <span class="slider"></span>
-                            </label>
+                            <label class="switch"><input type="checkbox" id="replaceUntilGoodSwitch"><span class="slider"></span></label>
                         </div>
-
                         <div class="input-group">
                             <label>Select Bad Dice Numbers</label>
                             <div class="dice-grid" id="trackerDiceGrid">
@@ -1118,1065 +268,83 @@
                     </div>
                 </div>
 
+                <!-- DM Auto Tracker Tab -->
+                <div id="dmTrackerTab" class="tab-content">
+                    <div class="timer-info-box purple" id="dmTrackerTimerInfo">
+                        <div class="timer-row">
+                            <span class="timer-label">⏱️ Auto-Stop In</span>
+                            <span class="timer-value" id="dmTrackerTimerDisplay">05:00</span>
+                        </div>
+                        <div class="timer-note">DM Tracker will automatically stop after 5 minutes</div>
+                    </div>
+                    <div class="switch-container purple">
+                        <span class="switch-label">💬 DM Auto Tracker</span>
+                        <label class="switch">
+                            <input type="checkbox" id="dmTrackerSwitch" onchange="toggleTracker('dm')">
+                            <span class="slider purple"></span>
+                        </label>
+                    </div>
+                    <div class="tracker-status purple" id="dmTrackerStatusBox" style="display: none;">
+                        <div class="row"><span class="label">Status</span><span class="value" id="dmTrackerStatusText">Inactive</span></div>
+                        <div class="row"><span class="label">User ID</span><span class="value" id="dmTrackerUserId">-</span></div>
+                        <div class="row"><span class="label">Bad Values</span><span class="value" id="dmTrackerBadValues">-</span></div>
+                        <div class="row"><span class="label">Deletion Limit</span><span class="value" id="dmTrackerDeletionLimit">-</span></div>
+                        <div class="row"><span class="label">Replace Until Good</span><span class="value" id="dmTrackerReplaceUntilGood">-</span></div>
+                    </div>
+                    <div class="stats-grid" id="dmTrackerStats" style="display: none;">
+                        <div class="stat-box purple"><div class="label">Total Dice</div><div class="value" id="dmStatTotalDice">0</div></div>
+                        <div class="stat-box purple"><div class="label">Deleted</div><div class="value" id="dmStatDeleted">0</div></div>
+                        <div class="stat-box purple"><div class="label">Kept</div><div class="value" id="dmStatKept">0</div></div>
+                        <div class="stat-box purple"><div class="label">Duration</div><div class="value" id="dmStatDuration">0s</div></div>
+                    </div>
+                    <div id="dmActivityLogContainer" style="display: none;">
+                        <div class="input-group">
+                            <label>Activity Log</label>
+                            <div id="dmActivityLog" class="activity-log"></div>
+                        </div>
+                    </div>
+                    <div id="dmTrackerConfig">
+                        <div class="section-header">
+                            <span class="icon">💬</span>
+                            <h3>DM Tracker Settings</h3>
+                            <span class="dm-badge">Personal</span>
+                        </div>
+                        <div class="input-group">
+                            <label for="dmTrackerUserIdInput">User ID / Username</label>
+                            <input type="text" id="dmTrackerUserIdInput" placeholder="@username or numeric user ID" />
+                            <small>Enter the user's @username or their numeric Telegram ID</small>
+                        </div>
+                        <div class="input-group">
+                            <label for="dmTrackerDeletionLimitInput">Deletion Limit</label>
+                            <input type="number" id="dmTrackerDeletionLimitInput" placeholder="Leave empty for default" min="0" max="10" />
+                            <small>Empty = keep first, delete rest | 0 = never delete</small>
+                        </div>
+                        <div class="switch-container purple">
+                            <div>
+                                <span class="switch-label">Replace Until Good Value</span>
+                                <small style="display: block; color: #666; font-weight: normal; margin-top: 4px;">Keep replacing deleted dice until a non-bad value appears</small>
+                            </div>
+                            <label class="switch"><input type="checkbox" id="dmReplaceUntilGoodSwitch"><span class="slider purple"></span></label>
+                        </div>
+                        <div class="input-group">
+                            <label>Select Bad Dice Numbers</label>
+                            <div class="dice-grid" id="dmTrackerDiceGrid">
+                                <div class="dice-box" data-value="1" onclick="toggleDice(1, 'dmTracker')">1</div>
+                                <div class="dice-box" data-value="2" onclick="toggleDice(2, 'dmTracker')">2</div>
+                                <div class="dice-box" data-value="3" onclick="toggleDice(3, 'dmTracker')">3</div>
+                                <div class="dice-box" data-value="4" onclick="toggleDice(4, 'dmTracker')">4</div>
+                                <div class="dice-box" data-value="5" onclick="toggleDice(5, 'dmTracker')">5</div>
+                                <div class="dice-box" data-value="6" onclick="toggleDice(6, 'dmTracker')">6</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
                 <button class="btn logout-btn" onclick="logout()">Logout</button>
             </div>
         </div>
     </div>
 
-    <script>
-        const API_URL = 'https://api.jdeestore.in/api';
-
-        // Timer configuration - starts only when tracker starts
-        const TRACKER_DURATION = 5 * 60; // 5 minutes in seconds
-        let trackerTimeRemaining = TRACKER_DURATION;
-        let trackerTimerInterval = null;
-
-        let selectedDiceManual = [];
-        let selectedDiceTracker = [];
-        let selectedDiceDm = [];
-        let sessionString = '';
-        let sessionId = '';
-        let apiKey = '';
-        let trackerRunning = false;
-        let trackerStatusInterval = null;
-        let activityLogs = [];
-        const MAX_LOGS = 50;
-
-        // ============= TIMER FUNCTIONS =============
-
-        function startTrackerTimer() {
-            // Reset timer to full duration
-            trackerTimeRemaining = TRACKER_DURATION;
-            
-            // Show timer UI
-            showTimer();
-            updateTimerDisplay();
-            
-            // Clear existing interval if any
-            if (trackerTimerInterval) {
-                clearInterval(trackerTimerInterval);
-            }
-            
-            // Start countdown
-            trackerTimerInterval = setInterval(() => {
-                trackerTimeRemaining--;
-                updateTimerDisplay();
-                
-                if (trackerTimeRemaining <= 0) {
-                    handleTrackerExpiry();
-                }
-            }, 1000);
-            
-            console.log('Tracker timer started - 5 minutes');
-        }
-
-        function updateTimerDisplay() {
-            const minutes = Math.floor(trackerTimeRemaining / 60);
-            const seconds = trackerTimeRemaining % 60;
-            const display = `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
-            
-            // Update all timer displays
-            const timerDisplay = document.getElementById('timerDisplay');
-            const trackerTimerDisplay = document.getElementById('trackerTimerDisplay');
-            const timerProgressBar = document.getElementById('timerProgressBar');
-            const timerIcon = document.getElementById('timerIcon');
-            const timerStatusBadge = document.getElementById('timerStatusBadge');
-            
-            timerDisplay.textContent = display;
-            trackerTimerDisplay.textContent = display;
-            
-            // Calculate progress percentage
-            const progressPercent = (trackerTimeRemaining / TRACKER_DURATION) * 100;
-            timerProgressBar.style.width = `${progressPercent}%`;
-            
-            // Update visual states based on time remaining
-            timerDisplay.classList.remove('warning', 'critical');
-            timerProgressBar.classList.remove('warning', 'critical');
-            
-            if (trackerTimeRemaining <= 60) {
-                // Critical: Less than 1 minute
-                timerDisplay.classList.add('critical');
-                timerProgressBar.classList.add('critical');
-                timerIcon.textContent = '🚨';
-                timerStatusBadge.textContent = '⚠️ Stopping Soon';
-                timerStatusBadge.className = 'timer-status-badge expired';
-            } else if (trackerTimeRemaining <= 120) {
-                // Warning: Less than 2 minutes
-                timerDisplay.classList.add('warning');
-                timerProgressBar.classList.add('warning');
-                timerIcon.textContent = '⚠️';
-                timerStatusBadge.textContent = '⏳ Low Time';
-                timerStatusBadge.className = 'timer-status-badge inactive';
-            } else {
-                timerIcon.textContent = '⏱️';
-                timerStatusBadge.textContent = '● Tracker Active';
-                timerStatusBadge.className = 'timer-status-badge active';
-            }
-        }
-
-        function showTimer() {
-            document.getElementById('globalTimer').classList.add('show');
-            document.getElementById('timerProgressContainer').classList.add('show');
-            document.getElementById('trackerTimerInfo').classList.add('show');
-        }
-
-        function hideTimer() {
-            document.getElementById('globalTimer').classList.remove('show');
-            document.getElementById('timerProgressContainer').classList.remove('show');
-            document.getElementById('trackerTimerInfo').classList.remove('show');
-        }
-
-        function stopTrackerTimer() {
-            if (trackerTimerInterval) {
-                clearInterval(trackerTimerInterval);
-                trackerTimerInterval = null;
-            }
-            hideTimer();
-        }
-
-        async function handleTrackerExpiry() {
-            console.log('Tracker timer expired - auto stopping...');
-            
-            // Stop the timer
-            stopTrackerTimer();
-            
-            // Show expired overlay
-            document.getElementById('sessionExpiredOverlay').classList.add('show');
-            
-            // Stop the tracker via API
-            if (trackerRunning) {
-                try {
-                    const response = await fetch(`${API_URL}/tracker/stop`, {
-                        method: 'POST',
-                        headers: { 
-                            'Content-Type': 'application/json',
-                            'X-API-Key': apiKey
-                        },
-                        body: JSON.stringify({ session: sessionString }),
-                    });
-                    
-                    const data = await response.json();
-                    console.log('Tracker auto-stopped:', data);
-                } catch (error) {
-                    console.error('Failed to auto-stop tracker:', error);
-                }
-            }
-            
-            // Update UI
-            trackerRunning = false;
-            document.getElementById('trackerSwitch').checked = false;
-            updateTrackerUI(false);
-            document.getElementById('trackerConfig').style.display = 'block';
-            stopTrackerStatusUpdates();
-            
-            // Add auto-stop log entry
-            activityLogs.unshift({
-                timestamp: new Date().toLocaleTimeString(),
-                dice: '⏰',
-                action: 'system',
-                reason: 'Auto-stopped after 5 minutes'
-            });
-            renderActivityLog();
-        }
-
-        function closeExpiredOverlay() {
-            document.getElementById('sessionExpiredOverlay').classList.remove('show');
-        }
-
-        // ============= MAIN FUNCTIONS =============
-
-        function init() {
-            sessionString = localStorage.getItem('telegram_session') || '';
-            apiKey = localStorage.getItem('api_key') || '';
-            
-            if (apiKey) {
-                document.getElementById('apiKey').value = apiKey;
-            }
-            
-            if (sessionString && apiKey) {
-                verifyStoredKey().then(valid => {
-                    if (valid) {
-                        showPage('dashboardPage');
-                        loadSavedData();
-                        checkTrackerStatus();
-                    } else {
-                        logout();
-                    }
-                });
-            } else {
-                showPage('loginPage');
-            }
-        }
-
-        async function verifyStoredKey() {
-            try {
-                const response = await fetch(`${API_URL}/verify-key`, {
-                    method: 'POST',
-                    headers: { 
-                        'Content-Type': 'application/json',
-                        'X-API-Key': apiKey
-                    }
-                });
-                const data = await response.json();
-                return data.success;
-            } catch (error) {
-                return false;
-            }
-        }
-
-        function loadSavedData() {
-            const savedChatId = localStorage.getItem('chat_id') || '';
-            const savedDice = localStorage.getItem('selected_dice') || '';
-            const savedMaxDeletions = localStorage.getItem('max_deletions') || '';
-            
-            const savedTrackerChatId = localStorage.getItem('tracker_chat_id') || '';
-            const savedTrackerDice = localStorage.getItem('tracker_dice') || '';
-            const savedTrackerLimit = localStorage.getItem('tracker_limit') || '';
-            const savedReplaceUntilGood = localStorage.getItem('replace_until_good') === 'true';
-
-            const savedDmUserId = localStorage.getItem('dm_user_id') || '';
-            const savedDmDice = localStorage.getItem('dm_dice') || '';
-            const savedDmMaxDeletions = localStorage.getItem('dm_max_deletions') || '';
-            const savedDmTotalDice = localStorage.getItem('dm_total_dice') || '6';
-
-            if (savedChatId) document.getElementById('chatId').value = savedChatId;
-            if (savedMaxDeletions) document.getElementById('maxDeletions').value = savedMaxDeletions;
-            if (savedTrackerChatId) document.getElementById('trackerChatIdInput').value = savedTrackerChatId;
-            if (savedTrackerLimit) document.getElementById('trackerDeletionLimitInput').value = savedTrackerLimit;
-            document.getElementById('replaceUntilGoodSwitch').checked = savedReplaceUntilGood;
-
-            if (savedDmUserId) document.getElementById('dmUserId').value = savedDmUserId;
-            if (savedDmMaxDeletions) document.getElementById('dmMaxDeletions').value = savedDmMaxDeletions;
-            if (savedDmTotalDice) document.getElementById('dmTotalDice').value = savedDmTotalDice;
-
-            if (savedDice) {
-                try {
-                    selectedDiceManual = JSON.parse(savedDice);
-                    selectedDiceManual.forEach(num => {
-                        const box = document.querySelector(`#manualDiceGrid [data-value="${num}"]`);
-                        if (box) box.classList.add('selected');
-                    });
-                } catch (e) {
-                    selectedDiceManual = [];
-                }
-            }
-
-            if (savedTrackerDice) {
-                try {
-                    selectedDiceTracker = JSON.parse(savedTrackerDice);
-                    selectedDiceTracker.forEach(num => {
-                        const box = document.querySelector(`#trackerDiceGrid [data-value="${num}"]`);
-                        if (box) box.classList.add('selected');
-                    });
-                } catch (e) {
-                    selectedDiceTracker = [];
-                }
-            }
-
-            if (savedDmDice) {
-                try {
-                    selectedDiceDm = JSON.parse(savedDmDice);
-                    selectedDiceDm.forEach(num => {
-                        const box = document.querySelector(`#dmDiceGrid [data-value="${num}"]`);
-                        if (box) box.classList.add('selected');
-                    });
-                } catch (e) {
-                    selectedDiceDm = [];
-                }
-            }
-        }
-
-        function showPage(pageId) {
-            document.querySelectorAll('.page').forEach(page => page.classList.remove('active'));
-            document.getElementById(pageId).classList.add('active');
-            hideAllMessages();
-        }
-
-        function switchTab(tabId) {
-            document.querySelectorAll('.tab').forEach(tab => tab.classList.remove('active'));
-            document.querySelectorAll('.tab-content').forEach(content => content.classList.remove('active'));
-            
-            const tabs = document.querySelectorAll('.tab');
-            if (tabId === 'manualTab') {
-                tabs[0].classList.add('active');
-            } else if (tabId === 'dmTab') {
-                tabs[1].classList.add('active');
-            } else if (tabId === 'trackerTab') {
-                tabs[2].classList.add('active');
-            }
-            
-            document.getElementById(tabId).classList.add('active');
-            hideAllMessages();
-        }
-
-        function hideAllMessages() {
-            document.querySelectorAll('.error-msg, .success-msg').forEach(msg => msg.classList.remove('show'));
-        }
-
-        async function sendOTP() {
-            let phone = document.getElementById('phoneNumber').value.trim();
-            apiKey = document.getElementById('apiKey').value.trim();
-            
-            if (!apiKey) {
-                showError('loginError', 'Please enter your API key');
-                return;
-            }
-            
-            if (!phone) {
-                showError('loginError', 'Please enter a valid phone number');
-                return;
-            }
-            if (!phone.startsWith('+')) phone = '+' + phone;
-
-            setButtonLoading('loginBtn', true);
-            try {
-                const response = await fetch(`${API_URL}/send-otp`, {
-                    method: 'POST',
-                    headers: { 
-                        'Content-Type': 'application/json',
-                        'X-API-Key': apiKey
-                    },
-                    body: JSON.stringify({ phone }),
-                });
-                const data = await response.json();
-                if (data.success) {
-                    sessionId = data.session_id;
-                    localStorage.setItem('api_key', apiKey);
-                    showPage('otpPage');
-                } else {
-                    if (response.status === 401) {
-                        showError('loginError', 'Invalid API key. Please check and try again.');
-                    } else {
-                        showError('loginError', data.error || 'Failed to send OTP');
-                    }
-                }
-            } catch (error) {
-                showError('loginError', 'Failed to connect to server');
-            } finally {
-                setButtonLoading('loginBtn', false);
-            }
-        }
-
-        async function verifyOTP() {
-            const code = document.getElementById('otpCode').value.trim();
-            if (!code || code.length < 5) {
-                showError('otpError', 'Please enter a valid OTP code');
-                return;
-            }
-
-            setButtonLoading('verifyBtn', true);
-            try {
-                const response = await fetch(`${API_URL}/verify-otp`, {
-                    method: 'POST',
-                    headers: { 
-                        'Content-Type': 'application/json',
-                        'X-API-Key': apiKey
-                    },
-                    body: JSON.stringify({ session_id: sessionId, code }),
-                });
-                const data = await response.json();
-                if (data.success) {
-                    sessionString = data.session_string;
-                    localStorage.setItem('telegram_session', sessionString);
-                    showPage('dashboardPage');
-                    loadSavedData();
-                    checkTrackerStatus();
-                } else if (data.error === '2FA_REQUIRED') {
-                    showPage('passwordPage');
-                } else {
-                    showError('otpError', data.message || 'Invalid OTP code');
-                }
-            } catch (error) {
-                showError('otpError', 'Failed to verify OTP');
-            } finally {
-                setButtonLoading('verifyBtn', false);
-            }
-        }
-
-        async function verify2FA() {
-            const password = document.getElementById('password2FA').value;
-            if (!password) {
-                showError('passwordError', 'Please enter your 2FA password');
-                return;
-            }
-
-            setButtonLoading('passwordBtn', true);
-            try {
-                const response = await fetch(`${API_URL}/verify-2fa`, {
-                    method: 'POST',
-                    headers: { 
-                        'Content-Type': 'application/json',
-                        'X-API-Key': apiKey
-                    },
-                    body: JSON.stringify({ session_id: sessionId, password }),
-                });
-                const data = await response.json();
-                if (data.success) {
-                    sessionString = data.session_string;
-                    localStorage.setItem('telegram_session', sessionString);
-                    showPage('dashboardPage');
-                    loadSavedData();
-                    checkTrackerStatus();
-                } else {
-                    showError('passwordError', data.message || 'Invalid password');
-                }
-            } catch (error) {
-                showError('passwordError', 'Failed to verify password');
-            } finally {
-                setButtonLoading('passwordBtn', false);
-            }
-        }
-
-        function backToLogin() {
-            sessionId = '';
-            showPage('loginPage');
-        }
-
-        function toggleDice(number, type) {
-            let grid, arr, storageKey;
-            
-            if (type === 'manual') {
-                grid = 'manualDiceGrid';
-                arr = selectedDiceManual;
-                storageKey = 'selected_dice';
-            } else if (type === 'dm') {
-                grid = 'dmDiceGrid';
-                arr = selectedDiceDm;
-                storageKey = 'dm_dice';
-            } else {
-                grid = 'trackerDiceGrid';
-                arr = selectedDiceTracker;
-                storageKey = 'tracker_dice';
-            }
-            
-            const box = document.querySelector(`#${grid} [data-value="${number}"]`);
-            const index = arr.indexOf(number);
-
-            if (index > -1) {
-                arr.splice(index, 1);
-                box.classList.remove('selected');
-            } else {
-                arr.push(number);
-                box.classList.add('selected');
-            }
-
-            localStorage.setItem(storageKey, JSON.stringify(arr));
-        }
-
-        async function sendDice() {
-            const chatId = document.getElementById('chatId').value.trim();
-            const maxDeletionsInput = document.getElementById('maxDeletions').value.trim();
-
-            if (!chatId) {
-                showError('errorMsg', 'Please enter a chat ID');
-                return;
-            }
-
-            if (selectedDiceManual.length === 0) {
-                showError('errorMsg', 'Please select at least one dice number');
-                return;
-            }
-
-            let maxDeletions = null;
-            if (maxDeletionsInput !== '') {
-                maxDeletions = parseInt(maxDeletionsInput);
-                if (isNaN(maxDeletions) || maxDeletions < 0) {
-                    showError('errorMsg', 'Deletion limit must be 0 or positive');
-                    return;
-                }
-            }
-
-            localStorage.setItem('chat_id', chatId);
-            localStorage.setItem('max_deletions', maxDeletionsInput);
-
-            setButtonLoading('sendDiceBtn', true);
-            try {
-                showSuccess('Sending dice...');
-                const requestBody = {
-                    session: sessionString,
-                    chat_id: chatId,
-                    dice_numbers: selectedDiceManual
-                };
-                if (maxDeletions !== null) requestBody.max_deletions = maxDeletions;
-
-                const response = await fetch(`${API_URL}/send-dice`, {
-                    method: 'POST',
-                    headers: { 
-                        'Content-Type': 'application/json',
-                        'X-API-Key': apiKey
-                    },
-                    body: JSON.stringify(requestBody),
-                });
-                const data = await response.json();
-                if (data.success) {
-                    showSuccess(`Success! ${data.message}`);
-                } else {
-                    if (response.status === 401) {
-                        showError('errorMsg', 'Invalid API key. Please logout and login again.');
-                    } else {
-                        showError('errorMsg', data.error || 'Failed to send dice');
-                    }
-                }
-            } catch (error) {
-                showError('errorMsg', 'Failed to send dice');
-            } finally {
-                setButtonLoading('sendDiceBtn', false);
-            }
-        }
-
-        async function sendDmDice() {
-            const userId = document.getElementById('dmUserId').value.trim();
-            const maxDeletionsInput = document.getElementById('dmMaxDeletions').value.trim();
-            const totalDiceInput = document.getElementById('dmTotalDice').value.trim();
-
-            if (!userId) {
-                showError('errorMsg', 'Please enter a user ID or username');
-                return;
-            }
-
-            if (selectedDiceDm.length === 0) {
-                showError('errorMsg', 'Please select at least one dice number');
-                return;
-            }
-
-            let maxDeletions = null;
-            if (maxDeletionsInput !== '') {
-                maxDeletions = parseInt(maxDeletionsInput);
-                if (isNaN(maxDeletions) || maxDeletions < 0) {
-                    showError('errorMsg', 'Deletion limit must be 0 or positive');
-                    return;
-                }
-            }
-
-            let totalDice = 6;
-            if (totalDiceInput !== '') {
-                totalDice = parseInt(totalDiceInput);
-                if (isNaN(totalDice) || totalDice < 1 || totalDice > 20) {
-                    showError('errorMsg', 'Total dice must be between 1 and 20');
-                    return;
-                }
-            }
-
-            localStorage.setItem('dm_user_id', userId);
-            localStorage.setItem('dm_max_deletions', maxDeletionsInput);
-            localStorage.setItem('dm_total_dice', totalDiceInput || '6');
-
-            setButtonLoading('sendDmDiceBtn', true);
-            try {
-                showSuccess('Sending dice to DM...');
-                
-                const requestBody = {
-                    session: sessionString,
-                    chat_id: userId,
-                    dice_numbers: selectedDiceDm,
-                    total_dice: totalDice
-                };
-                if (maxDeletions !== null) requestBody.max_deletions = maxDeletions;
-
-                const response = await fetch(`${API_URL}/send-dice`, {
-                    method: 'POST',
-                    headers: { 
-                        'Content-Type': 'application/json',
-                        'X-API-Key': apiKey
-                    },
-                    body: JSON.stringify(requestBody),
-                });
-                const data = await response.json();
-                if (data.success) {
-                    showSuccess(`Success! ${data.message}`);
-                } else {
-                    if (response.status === 401) {
-                        showError('errorMsg', 'Invalid API key. Please logout and login again.');
-                    } else {
-                        showError('errorMsg', data.error || 'Failed to send dice to DM');
-                    }
-                }
-            } catch (error) {
-                showError('errorMsg', 'Failed to send dice to DM');
-            } finally {
-                setButtonLoading('sendDmDiceBtn', false);
-            }
-        }
-
-        async function toggleTracker() {
-            const switchEl = document.getElementById('trackerSwitch');
-            
-            if (switchEl.checked) {
-                await startTracker();
-            } else {
-                await stopTracker();
-            }
-        }
-
-        async function startTracker() {
-            const chatId = document.getElementById('trackerChatIdInput').value.trim();
-            const limitInput = document.getElementById('trackerDeletionLimitInput').value.trim();
-            const replaceUntilGood = document.getElementById('replaceUntilGoodSwitch').checked;
-
-            if (!chatId) {
-                showError('errorMsg', 'Please enter a chat ID for tracker');
-                document.getElementById('trackerSwitch').checked = false;
-                return;
-            }
-
-            if (selectedDiceTracker.length === 0) {
-                showError('errorMsg', 'Please select at least one bad dice number');
-                document.getElementById('trackerSwitch').checked = false;
-                return;
-            }
-
-            let deletionLimit = null;
-            if (limitInput !== '') {
-                deletionLimit = parseInt(limitInput);
-                if (isNaN(deletionLimit) || deletionLimit < 0) {
-                    showError('errorMsg', 'Deletion limit must be 0 or positive');
-                    document.getElementById('trackerSwitch').checked = false;
-                    return;
-                }
-            }
-
-            localStorage.setItem('tracker_chat_id', chatId);
-            localStorage.setItem('tracker_limit', limitInput);
-            localStorage.setItem('replace_until_good', replaceUntilGood);
-
-            document.getElementById('trackerSwitch').disabled = true;
-
-            try {
-                const requestBody = {
-                    session: sessionString,
-                    chat_id: chatId,
-                    bad_values: selectedDiceTracker,
-                    deletion_limit: deletionLimit,
-                    replace_until_good: replaceUntilGood
-                };
-
-                const response = await fetch(`${API_URL}/tracker/start`, {
-                    method: 'POST',
-                    headers: { 
-                        'Content-Type': 'application/json',
-                        'X-API-Key': apiKey
-                    },
-                    body: JSON.stringify(requestBody),
-                });
-
-                const data = await response.json();
-                
-                if (data.success) {
-                    trackerRunning = true;
-                    showSuccess(`Tracker started! Monitoring chat ${chatId}`);
-                    updateTrackerUI(true);
-                    document.getElementById('trackerConfig').style.display = 'none';
-                    
-                    document.getElementById('trackerChatId').textContent = chatId;
-                    document.getElementById('trackerBadValues').textContent = selectedDiceTracker.join(', ');
-                    const limitText = deletionLimit === null ? 'Keep first, delete rest' : 
-                                     deletionLimit === 0 ? 'Never delete' : 
-                                     `Delete ${deletionLimit} time(s)`;
-                    document.getElementById('trackerDeletionLimit').textContent = limitText;
-                    document.getElementById('trackerReplaceUntilGood').textContent = replaceUntilGood ? 'Yes' : 'No';
-                    
-                    // START THE 5-MINUTE TIMER HERE!
-                    startTrackerTimer();
-                    
-                    startTrackerStatusUpdates();
-                } else if (data.error && data.error.includes('already active')) {
-                    trackerRunning = true;
-                    document.getElementById('trackerSwitch').checked = true;
-                    updateTrackerUI(true);
-                    document.getElementById('trackerConfig').style.display = 'none';
-                    
-                    if (data.existing_tracker) {
-                        const existing = data.existing_tracker;
-                        document.getElementById('trackerChatId').textContent = existing.chat_id || chatId;
-                        document.getElementById('trackerBadValues').textContent = existing.bad_values ? existing.bad_values.join(', ') : '-';
-                        
-                        const limitText = existing.deletion_limit === null ? 'Keep first, delete rest' : 
-                                         existing.deletion_limit === 0 ? 'Never delete' : 
-                                         `Delete ${existing.deletion_limit} time(s)`;
-                        document.getElementById('trackerDeletionLimit').textContent = limitText;
-                        document.getElementById('trackerReplaceUntilGood').textContent = existing.replace_until_good ? 'Yes' : 'No';
-                        
-                        if (existing.stats) {
-                            updateTrackerStats(existing.stats);
-                        }
-                    }
-                    
-                    // Show timer for already running tracker (calculate remaining time)
-                    showTimer();
-                    
-                    showError('errorMsg', 'Tracker already active for this session. Showing current status.');
-                    startTrackerStatusUpdates();
-                } else if (response.status === 401) {
-                    showError('errorMsg', 'Invalid API key. Please logout and login again.');
-                    document.getElementById('trackerSwitch').checked = false;
-                } else if (data.error && (data.error.includes('expired') || data.error.includes('invalid') || data.error.includes('authorized') || data.error.includes('login again'))) {
-                    showError('errorMsg', 'Session expired. Please login again.');
-                    document.getElementById('trackerSwitch').checked = false;
-                    setTimeout(() => logout(), 2000);
-                } else {
-                    showError('errorMsg', data.error || 'Failed to start tracker');
-                    document.getElementById('trackerSwitch').checked = false;
-                }
-            } catch (error) {
-                showError('errorMsg', 'Failed to start tracker');
-                document.getElementById('trackerSwitch').checked = false;
-            } finally {
-                document.getElementById('trackerSwitch').disabled = false;
-            }
-        }
-
-        async function stopTracker() {
-            document.getElementById('trackerSwitch').disabled = true;
-
-            try {
-                const response = await fetch(`${API_URL}/tracker/stop`, {
-                    method: 'POST',
-                    headers: { 
-                        'Content-Type': 'application/json',
-                        'X-API-Key': apiKey
-                    },
-                    body: JSON.stringify({ session: sessionString }),
-                });
-
-                const data = await response.json();
-                
-                if (data.success) {
-                    trackerRunning = false;
-                    showSuccess(`Tracker stopped. Total: ${data.stats.total_dice}, Deleted: ${data.stats.deleted}`);
-                    updateTrackerUI(false);
-                    document.getElementById('trackerConfig').style.display = 'block';
-                    
-                    // STOP THE TIMER when tracker stops
-                    stopTrackerTimer();
-                    
-                    stopTrackerStatusUpdates();
-                } else {
-                    showError('errorMsg', data.error || 'Failed to stop tracker');
-                    document.getElementById('trackerSwitch').checked = true;
-                }
-            } catch (error) {
-                showError('errorMsg', 'Failed to stop tracker');
-                document.getElementById('trackerSwitch').checked = true;
-            } finally {
-                document.getElementById('trackerSwitch').disabled = false;
-            }
-        }
-
-        async function checkTrackerStatus() {
-            try {
-                const response = await fetch(`${API_URL}/tracker/status`, {
-                    method: 'POST',
-                    headers: { 
-                        'Content-Type': 'application/json',
-                        'X-API-Key': apiKey
-                    },
-                    body: JSON.stringify({ session: sessionString }),
-                });
-
-                const data = await response.json();
-                
-                if (data.success && data.running) {
-                    trackerRunning = true;
-                    document.getElementById('trackerSwitch').checked = true;
-                    updateTrackerUI(true);
-                    document.getElementById('trackerConfig').style.display = 'none';
-                    
-                    document.getElementById('trackerChatId').textContent = data.chat_id || '-';
-                    document.getElementById('trackerBadValues').textContent = data.bad_values ? data.bad_values.join(', ') : '-';
-                    
-                    const limitText = data.deletion_limit === null ? 'Keep first, delete rest' : 
-                                     data.deletion_limit === 0 ? 'Never delete' : 
-                                     `Delete ${data.deletion_limit} time(s)`;
-                    document.getElementById('trackerDeletionLimit').textContent = limitText;
-                    document.getElementById('trackerReplaceUntilGood').textContent = data.replace_until_good ? 'Yes' : 'No';
-                    
-                    if (data.stats) {
-                        updateTrackerStats(data.stats);
-                    }
-                    
-                    // If tracker is running, sync timer with backend time_remaining
-                    if (data.time_remaining !== undefined && data.time_remaining > 0) {
-                        trackerTimeRemaining = Math.floor(data.time_remaining);
-                        showTimer();
-                        updateTimerDisplay();
-                        
-                        // Start local countdown
-                        if (!trackerTimerInterval) {
-                            trackerTimerInterval = setInterval(() => {
-                                trackerTimeRemaining--;
-                                updateTimerDisplay();
-                                
-                                if (trackerTimeRemaining <= 0) {
-                                    handleTrackerExpiry();
-                                }
-                            }, 1000);
-                        }
-                    } else {
-                        // Fallback: start fresh timer if backend doesn't provide time
-                        startTrackerTimer();
-                    }
-                    
-                    startTrackerStatusUpdates();
-                } else if (!data.success && data.error && (data.error.includes('expired') || data.error.includes('invalid') || data.error.includes('authorized'))) {
-                    showError('errorMsg', 'Session expired. Please login again.');
-                    setTimeout(() => logout(), 2000);
-                } else {
-                    trackerRunning = false;
-                    document.getElementById('trackerSwitch').checked = false;
-                    updateTrackerUI(false);
-                    document.getElementById('trackerConfig').style.display = 'block';
-                    hideTimer();
-                }
-            } catch (error) {
-                console.error('Failed to check tracker status:', error);
-                trackerRunning = false;
-                document.getElementById('trackerSwitch').checked = false;
-                updateTrackerUI(false);
-                document.getElementById('trackerConfig').style.display = 'block';
-                hideTimer();
-            }
-        }
-
-        function updateTrackerUI(running) {
-            const statusBox = document.getElementById('trackerStatusBox');
-            const statsBox = document.getElementById('trackerStats');
-            const statusText = document.getElementById('trackerStatusText');
-            const activityLogContainer = document.getElementById('activityLogContainer');
-            
-            if (running) {
-                statusBox.style.display = 'block';
-                statsBox.style.display = 'grid';
-                activityLogContainer.style.display = 'block';
-                statusText.textContent = 'Running';
-                statusText.style.color = '#10b981';
-            } else {
-                statusBox.style.display = 'none';
-                statsBox.style.display = 'none';
-                activityLogContainer.style.display = 'none';
-                document.getElementById('trackerChatId').textContent = '-';
-                document.getElementById('trackerBadValues').textContent = '-';
-                document.getElementById('trackerDeletionLimit').textContent = '-';
-                document.getElementById('trackerReplaceUntilGood').textContent = '-';
-                updateTrackerStats({ total_dice: 0, deleted: 0, kept: 0, duration_seconds: 0 });
-                clearActivityLog();
-            }
-        }
-
-        function addLogEntry(dice, action, reason) {
-            const timestamp = new Date().toLocaleTimeString();
-            const entry = { timestamp, dice, action, reason };
-            
-            activityLogs.unshift(entry);
-            if (activityLogs.length > MAX_LOGS) {
-                activityLogs.pop();
-            }
-            
-            renderActivityLog();
-        }
-
-        function renderActivityLog() {
-            const logContainer = document.getElementById('activityLog');
-            
-            if (activityLogs.length === 0) {
-                logContainer.innerHTML = '';
-                return;
-            }
-            
-            let html = '';
-            activityLogs.forEach(log => {
-                let actionClass = log.action === 'kept' ? 'kept' : log.action === 'system' ? 'system' : 'deleted';
-                let actionIcon = log.action === 'kept' ? '✓' : log.action === 'system' ? '⚙️' : '✗';
-                let actionText = log.action === 'kept' ? 'Kept' : log.action === 'system' ? 'System' : 'Deleted';
-                
-                html += `
-                    <div class="log-entry ${actionClass}">
-                        <span class="time">${log.timestamp}</span>
-                        <span class="dice-icon">${log.action === 'system' ? '' : '🎲'} ${log.dice}</span>
-                        <strong>${actionIcon} ${actionText}</strong>
-                        <div class="reason">${log.reason}</div>
-                    </div>
-                `;
-            });
-            
-            html += '<button class="log-clear-btn" onclick="clearActivityLog()">Clear Log</button>';
-            
-            logContainer.innerHTML = html;
-        }
-
-        function clearActivityLog() {
-            activityLogs = [];
-            renderActivityLog();
-        }
-
-        function updateTrackerStats(stats) {
-            document.getElementById('statTotalDice').textContent = stats.total_dice || 0;
-            document.getElementById('statDeleted').textContent = stats.deleted || 0;
-            document.getElementById('statKept').textContent = stats.kept || 0;
-            document.getElementById('statDuration').textContent = `${stats.duration_seconds || 0}s`;
-        }
-
-        function startTrackerStatusUpdates() {
-            if (trackerStatusInterval) {
-                clearInterval(trackerStatusInterval);
-            }
-            
-            trackerStatusInterval = setInterval(async () => {
-                if (!trackerRunning) {
-                    stopTrackerStatusUpdates();
-                    return;
-                }
-                
-                try {
-                    const response = await fetch(`${API_URL}/tracker/status`, {
-                        method: 'POST',
-                        headers: { 
-                            'Content-Type': 'application/json',
-                            'X-API-Key': apiKey
-                        },
-                        body: JSON.stringify({ session: sessionString }),
-                    });
-
-                    const data = await response.json();
-                    
-                    if (data.success && data.running && data.stats) {
-                        updateTrackerStats(data.stats);
-                        
-                        // Sync timer with backend if available
-                        if (data.time_remaining !== undefined) {
-                            const backendTime = Math.floor(data.time_remaining);
-                            // Only sync if difference is more than 5 seconds
-                            if (Math.abs(backendTime - trackerTimeRemaining) > 5) {
-                                trackerTimeRemaining = backendTime;
-                                updateTimerDisplay();
-                            }
-                        }
-                        
-                        if (data.activity_log && data.activity_log.length > 0) {
-                            updateActivityLogFromBackend(data.activity_log);
-                        }
-                    } else if (data.success && !data.running) {
-                        // Tracker stopped (possibly auto-stopped by backend)
-                        trackerRunning = false;
-                        document.getElementById('trackerSwitch').checked = false;
-                        updateTrackerUI(false);
-                        document.getElementById('trackerConfig').style.display = 'block';
-                        stopTrackerStatusUpdates();
-                        stopTrackerTimer();
-                        
-                        // Show message if it was auto-stopped
-                        showSuccess('Tracker has been stopped.');
-                    }
-                } catch (error) {
-                    console.error('Failed to update tracker status:', error);
-                }
-            }, 5000);
-        }
-
-        function updateActivityLogFromBackend(backendLogs) {
-            activityLogs = backendLogs.map(log => ({
-                timestamp: new Date(log.timestamp * 1000).toLocaleTimeString(),
-                dice: log.dice,
-                action: log.action,
-                reason: log.reason
-            })).reverse();
-            
-            renderActivityLog();
-        }
-
-        function stopTrackerStatusUpdates() {
-            if (trackerStatusInterval) {
-                clearInterval(trackerStatusInterval);
-                trackerStatusInterval = null;
-            }
-        }
-
-        function logout() {
-            if (trackerRunning) {
-                if (!confirm('Tracker is running. Stop it before logout?')) {
-                    return;
-                }
-                stopTracker();
-            }
-
-            stopTrackerStatusUpdates();
-            stopTrackerTimer();
-            
-            localStorage.removeItem('telegram_session');
-            localStorage.removeItem('api_key');
-            localStorage.removeItem('chat_id');
-            localStorage.removeItem('selected_dice');
-            localStorage.removeItem('max_deletions');
-            localStorage.removeItem('tracker_chat_id');
-            localStorage.removeItem('tracker_dice');
-            localStorage.removeItem('tracker_limit');
-            localStorage.removeItem('replace_until_good');
-            localStorage.removeItem('dm_user_id');
-            localStorage.removeItem('dm_dice');
-            localStorage.removeItem('dm_max_deletions');
-            localStorage.removeItem('dm_total_dice');
-
-            sessionString = '';
-            sessionId = '';
-            apiKey = '';
-            selectedDiceManual = [];
-            selectedDiceTracker = [];
-            selectedDiceDm = [];
-            trackerRunning = false;
-
-            document.getElementById('phoneNumber').value = '';
-            document.getElementById('apiKey').value = '';
-            document.getElementById('otpCode').value = '';
-            document.getElementById('chatId').value = '';
-            document.getElementById('password2FA').value = '';
-            document.getElementById('maxDeletions').value = '';
-            document.getElementById('trackerChatIdInput').value = '';
-            document.getElementById('trackerDeletionLimitInput').value = '';
-            document.getElementById('trackerSwitch').checked = false;
-            document.getElementById('replaceUntilGoodSwitch').checked = false;
-            document.getElementById('dmUserId').value = '';
-            document.getElementById('dmMaxDeletions').value = '';
-            document.getElementById('dmTotalDice').value = '6';
-            
-            document.querySelectorAll('.dice-box').forEach(box => box.classList.remove('selected'));
-
-            showPage('loginPage');
-        }
-
-        function setButtonLoading(btnId, isLoading) {
-            const btn = document.getElementById(btnId);
-            const textSpan = document.getElementById(btnId + 'Text');
-
-            if (isLoading) {
-                btn.disabled = true;
-                textSpan.innerHTML = '<span class="loading"></span>Loading...';
-            } else {
-                btn.disabled = false;
-                if (btnId === 'loginBtn') textSpan.textContent = 'Login with Telegram';
-                else if (btnId === 'verifyBtn') textSpan.textContent = 'Verify OTP';
-                else if (btnId === 'passwordBtn') textSpan.textContent = 'Verify Password';
-                else if (btnId === 'sendDiceBtn') textSpan.textContent = '🎲 Send Dice';
-                else if (btnId === 'sendDmDiceBtn') textSpan.textContent = '💬 Send Dice to DM';
-            }
-        }
-
-        function showSuccess(message) {
-            hideAllMessages();
-            const successMsg = document.getElementById('successMsg');
-            successMsg.textContent = message;
-            successMsg.classList.add('show');
-            setTimeout(() => successMsg.classList.remove('show'), 5000);
-        }
-
-        function showError(elementId, message) {
-            hideAllMessages();
-            const errorMsg = document.getElementById(elementId);
-            errorMsg.textContent = message;
-            errorMsg.classList.add('show');
-            setTimeout(() => errorMsg.classList.remove('show'), 5000);
-        }
-
-        init();
-    </script>
+    <script src="app.js"></script>
 </body>
-
 </html>
