@@ -57,12 +57,43 @@ function loadSavedData() {
     fields.forEach(([id, key, def]) => { const v = localStorage.getItem(key) || def || ''; if (v) document.getElementById(id).value = v; });
     document.getElementById('replaceUntilGoodSwitch').checked = localStorage.getItem('replace_until_good') === 'true';
     document.getElementById('dmReplaceUntilGoodSwitch').checked = localStorage.getItem('dm_replace_until_good') === 'true';
-    [['selected_dice', 'manualDiceGrid', 'selected', 'selectedDiceManual'], 
-     ['tracker_dice', 'trackerDiceGrid', 'selected', 'selectedDiceTracker'],
-     ['dm_dice', 'dmDiceGrid', 'selected-purple', 'selectedDiceDm'], 
-     ['dm_tracker_dice', 'dmTrackerDiceGrid', 'selected-purple', 'selectedDiceDmTracker']].forEach(([key, grid, cls, arr]) => {
-        try { const saved = JSON.parse(localStorage.getItem(key) || '[]'); window[arr] = saved; saved.forEach(n => { const b = document.querySelector(`#${grid} [data-value="${n}"]`); if (b) b.classList.add(cls); }); } catch (e) { window[arr] = []; }
-    });
+    
+    // Load saved dice selections
+    try {
+        const savedManual = JSON.parse(localStorage.getItem('selected_dice') || '[]');
+        savedManual.forEach(n => {
+            selectedDiceManual.push(n);
+            const b = document.querySelector(`#manualDiceGrid [data-value="${n}"]`);
+            if (b) b.classList.add('selected');
+        });
+    } catch (e) { selectedDiceManual = []; }
+    
+    try {
+        const savedTracker = JSON.parse(localStorage.getItem('tracker_dice') || '[]');
+        savedTracker.forEach(n => {
+            selectedDiceTracker.push(n);
+            const b = document.querySelector(`#trackerDiceGrid [data-value="${n}"]`);
+            if (b) b.classList.add('selected');
+        });
+    } catch (e) { selectedDiceTracker = []; }
+    
+    try {
+        const savedDm = JSON.parse(localStorage.getItem('dm_dice') || '[]');
+        savedDm.forEach(n => {
+            selectedDiceDm.push(n);
+            const b = document.querySelector(`#dmDiceGrid [data-value="${n}"]`);
+            if (b) b.classList.add('selected-purple');
+        });
+    } catch (e) { selectedDiceDm = []; }
+    
+    try {
+        const savedDmTracker = JSON.parse(localStorage.getItem('dm_tracker_dice') || '[]');
+        savedDmTracker.forEach(n => {
+            selectedDiceDmTracker.push(n);
+            const b = document.querySelector(`#dmTrackerDiceGrid [data-value="${n}"]`);
+            if (b) b.classList.add('selected-purple');
+        });
+    } catch (e) { selectedDiceDmTracker = []; }
 }
 
 // ============================================
@@ -238,26 +269,40 @@ function logout() {
 // DICE SELECTION
 // ============================================
 function toggleDice(number, type) {
-    const config = { 
-        manual: ['manualDiceGrid', 'selectedDiceManual', 'selected_dice', 'selected'], 
-        dm: ['dmDiceGrid', 'selectedDiceDm', 'dm_dice', 'selected-purple'], 
-        tracker: ['trackerDiceGrid', 'selectedDiceTracker', 'tracker_dice', 'selected'], 
-        dmTracker: ['dmTrackerDiceGrid', 'selectedDiceDmTracker', 'dm_tracker_dice', 'selected-purple'] 
-    };
-    const [grid, arrName, storageKey, cls] = config[type];
-    const arr = window[arrName];
-    const box = document.querySelector(`#${grid} [data-value="${number}"]`);
-    if (!box) {
-        console.error(`Dice box not found: #${grid} [data-value="${number}"]`);
-        return;
+    let arr, grid, storageKey, cls;
+    
+    if (type === 'manual') {
+        arr = selectedDiceManual;
+        grid = 'manualDiceGrid';
+        storageKey = 'selected_dice';
+        cls = 'selected';
+    } else if (type === 'dm') {
+        arr = selectedDiceDm;
+        grid = 'dmDiceGrid';
+        storageKey = 'dm_dice';
+        cls = 'selected-purple';
+    } else if (type === 'tracker') {
+        arr = selectedDiceTracker;
+        grid = 'trackerDiceGrid';
+        storageKey = 'tracker_dice';
+        cls = 'selected';
+    } else if (type === 'dmTracker') {
+        arr = selectedDiceDmTracker;
+        grid = 'dmTrackerDiceGrid';
+        storageKey = 'dm_tracker_dice';
+        cls = 'selected-purple';
     }
+    
+    const box = document.querySelector(`#${grid} [data-value="${number}"]`);
+    if (!box) return;
+    
     const idx = arr.indexOf(number);
-    if (idx > -1) { 
-        arr.splice(idx, 1); 
-        box.classList.remove(cls); 
-    } else { 
-        arr.push(number); 
-        box.classList.add(cls); 
+    if (idx > -1) {
+        arr.splice(idx, 1);
+        box.classList.remove(cls);
+    } else {
+        arr.push(number);
+        box.classList.add(cls);
     }
     localStorage.setItem(storageKey, JSON.stringify(arr));
 }
